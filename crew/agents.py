@@ -1,8 +1,8 @@
 from crewai import Agent
 from crewai import LLM
 from textwrap import dedent
-from tools import GovernmentSchemeTool
-from crewai_tools import SerperDevTool
+from tools import DateTimeTool, GovernmentSchemeTool
+from crewai_tools import DuckDuckGoSearchTool
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
@@ -37,15 +37,20 @@ Notes:
 # You can define as many agents as you want.
 # You can also define custom tasks in tasks.py
 class CustomAgents:
-    def __init__(self):
+
+    # Class vars
+    qwen_3 = LLM(
+        model="ollama/qwen3:4b",
+        base_url="http://localhost:11434"
+    )
+
+    def __init__(self, verbose=True):
         # self.OpenAIGPT4o = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
         self.Ollama = ChatOllama(model="qwen3:4b")
+        self.verbose = verbose  # Default to verbose
 
-    def create_research_agent(self):
-        llm = LLM(
-            model="ollama/qwen3:4b",
-            base_url="http://localhost:11434"
-        )
+    @classmethod
+    def create_govt_research_agent(cls):
         return Agent(
             role="Government Policy Researcher",
             goal="""Find and collect comprehensive information about active government schemes and policies',
@@ -53,7 +58,23 @@ class CustomAgents:
         operations and policy implementation. You specialize in finding the most current and 
         accurate information about government schemes from official sources.""",
             backstory="You are an experienced researcher with attention to detail",
-            tools=[GovernmentSchemeTool()],
-            llm=llm,
-            verbose=True  # Enable logging for debugging
+            tools=[GovernmentSchemeTool(), DateTimeTool()],
+            llm=cls.qwen_3,
+            verbose=cls.verbose  # Enable logging for debugging
         )
+    
+    @classmethod
+    def create_web_search_agent(cls):
+        return Agent(
+            role="Web Search Specialist",
+            goal="Conduct web searches to find government schemes and policies",
+            backstory=dedent("""
+                You are a skilled web search specialist with expertise in finding 
+                information on government schemes and policies. You excel at using 
+                search engines and databases to locate relevant information quickly.
+            """),
+            tools=[DuckDuckGoSearchTool(), DateTimeTool()],
+            llm=cls.qwen_3,
+            verbose=cls.verbose  # Enable logging for debugging
+        )
+    

@@ -1,5 +1,6 @@
 from crewai.tools import BaseTool
 from langchain_community.tools import DuckDuckGoSearchRun
+import datetime
 
 class GovernmentSchemeTool(BaseTool):
     name: str ="government_scheme_search"
@@ -22,3 +23,10 @@ class GovernmentSchemeTool(BaseTool):
         
         return "\n\n".join(results)
     
+
+class DateTimeTool(BaseTool):
+    name: str = "datetime_tool"
+    description: str = "Get the current date and time in UTC format"
+
+    def _run(self) -> str:
+        return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
