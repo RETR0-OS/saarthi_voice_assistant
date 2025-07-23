@@ -6,6 +6,8 @@ import numpy as np
 import uuid
 import appdirs
 import os
+
+from ..utilities.identity_db_manager import DatabaseManager
 from ..models.User import User
 from ..identity_manager.face_recognition import FaceRecognitionUtility, CameraManager
 from ..utilities.crypto_manager import CryptoManager
