@@ -26,7 +26,6 @@ class GovernmentSchemeTool(BaseTool):
         
         return "\n\n".join(results)
     
-
 class DateTimeTool(BaseTool):
     name: str = "datetime_tool"
     description: str = "Get the current date and time in UTC format"
@@ -34,7 +33,6 @@ class DateTimeTool(BaseTool):
     def _run(self) -> str:
         return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
     
-
 class UserAuthenticationTool(BaseTool):
     """Tool for user authentication operations without exposing any PII"""
     name: str = "user_authentication"
@@ -113,7 +111,6 @@ class UserAuthenticationTool(BaseTool):
                 "message": f"Authentication error: {str(e)}"
             })
 
-
 class PIIRetrievalTool(BaseTool):
     """Tool to check if specific PII exists without revealing the actual data"""
     name: str = "pii_retrieval_check"
@@ -168,7 +165,6 @@ class PIIRetrievalTool(BaseTool):
                 "success": False,
                 "message": f"Error checking PII data: {str(e)}"
             })
-
 
 class PIIWriterTool(BaseTool):
     """Tool to use PII data in forms/applications without exposing it to the agent"""
@@ -243,7 +239,6 @@ class PIIWriterTool(BaseTool):
                 "message": f"Error using PII data: {str(e)}"
             })
 
-
 class PIIStorageTool(BaseTool):
     """Tool to store new PII data for authenticated users"""
     name: str = "pii_storage"
@@ -292,7 +287,6 @@ class PIIStorageTool(BaseTool):
                 "success": False,
                 "message": f"Error requesting PII storage: {str(e)}"
             })
-
 
 class UserEnrollmentTool(BaseTool):
     """Tool for enrolling new users without exposing their PII"""

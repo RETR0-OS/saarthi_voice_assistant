@@ -10,7 +10,7 @@ from tools import (
     PIIStorageTool,
     UserEnrollmentTool
 )
-from crewai_tools import DuckDuckGoSearchTool
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_ollama import ChatOllama
 
 
@@ -83,7 +83,7 @@ class CustomAgents:
                 information on government schemes and policies. You excel at using 
                 search engines and databases to locate relevant information quickly.
             """),
-            tools=[DuckDuckGoSearchTool(), DateTimeTool()],
+            tools=[DuckDuckGoSearchRun(), DateTimeTool()],
             llm=cls.qwen_3,
             verbose=cls.verbose  # Enable logging for debugging
         )
