@@ -42,11 +42,84 @@ class CustomCrew:
 
         result = crew.kickoff()
         return result
+    
+    def run_identity_example(self):
+        """Example of using identity management tools"""
+        agents = CustomAgents()
+        tasks = CustomTasks()
+        
+        # Create identity and application agents
+        identity_agent = agents.create_identity_agent()
+        scheme_agent = agents.create_scheme_application_agent()
+        
+        # Create tasks for secure identity management
+        auth_task = tasks.create_user_authentication_task()
+        
+        # Check for specific PII data types
+        pii_check_task = tasks.create_pii_check_task([
+            "aadhaar", 
+            "pan", 
+            "phone", 
+            "address"
+        ])
+        
+        # Apply for a government scheme using secure PII
+        application_task = tasks.create_scheme_application_task(
+            scheme_name="PM Kisan Samman Nidhi",
+            required_fields={
+                "aadhaar": "aadhaar_number_field",
+                "phone": "mobile_number_field",
+                "address": "residential_address_field"
+            }
+        )
+        
+        # Create crew with identity management workflow
+        identity_crew = Crew(
+            agents=[identity_agent, scheme_agent],
+            tasks=[auth_task, pii_check_task, application_task],
+            verbose=True,
+            process=Process.sequential  # Tasks run in order
+        )
+        
+        result = identity_crew.kickoff()
+        return result
+    
+    def run_enrollment_example(self):
+        """Example of enrolling a new user"""
+        agents = CustomAgents()
+        tasks = CustomTasks()
+        
+        identity_agent = agents.create_identity_agent()
+        
+        # Enrollment and PII storage tasks
+        enrollment_task = tasks.create_user_enrollment_task()
+        pii_storage_task = tasks.create_secure_pii_storage_task([
+            "aadhaar",
+            "pan",
+            "phone",
+            "address"
+        ])
+        
+        enrollment_crew = Crew(
+            agents=[identity_agent],
+            tasks=[enrollment_task, pii_storage_task],
+            verbose=True,
+            process=Process.sequential
+        )
+        
+        result = enrollment_crew.kickoff()
+        return result
 
 
 # This is the main function that you will use to run your custom crew.
 if __name__ == "__main__":
     custom_crew = CustomCrew()
+    
+    # Choose which example to run
+    # result = custom_crew.run()  # Original research example
+    # result = custom_crew.run_identity_example()  # Identity management example
+    # result = custom_crew.run_enrollment_example()  # User enrollment example
+    
     result = custom_crew.run()
     print("\n\n########################")
     print("## Here is you custom crew run result:")
