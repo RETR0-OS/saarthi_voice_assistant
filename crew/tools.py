@@ -30,3 +30,4 @@ class DateTimeTool(BaseTool):
 
     def _run(self) -> str:
         return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
+    
