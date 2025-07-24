@@ -3,12 +3,16 @@ name = "saarthi-voice-assistant"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 dependencies = [
     "accelerate>=1.9.0",
     "langchain[ollama]>=0.3.26",
     "sentencepiece>=0.2.0",
     "torch>=2.7.1",
     "torchaudio>=2.7.1",
+    "transformers>=4.53.3",
+    "pyttsx3>=2.99",
+    "speechrecognition>=3.14.3",
+    "streamlit>=1.47.0",
     "transformers>=4.53.3",
 ]

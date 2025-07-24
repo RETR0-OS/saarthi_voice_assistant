@@ -4,7 +4,6 @@ from textwrap import dedent
 from tools import DateTimeTool, GovernmentSchemeTool
 from crewai_tools import DuckDuckGoSearchTool
 from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
 
 
 """
