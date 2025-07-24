@@ -4,6 +4,64 @@ import datetime
 from identity_wallet.identity_manager.identity_manager import IdentityManager
 from typing import Dict, Any, Optional
 import json
+import threading
+
+
+class IdentityManagerSingleton:
+    """
+    Singleton wrapper for IdentityManager to ensure only one instance exists.
+    This reduces the high overhead of creating multiple IdentityManager instances.
+    """
+    _instance = None
+    _lock = threading.Lock()
+    _identity_manager = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(IdentityManagerSingleton, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        # Only initialize once
+        if self._identity_manager is None:
+            with self._lock:
+                if self._identity_manager is None:
+                    self._identity_manager = IdentityManager()
+    
+    def __getattr__(self, name):
+        """Delegate all attribute access to the wrapped IdentityManager instance"""
+        return getattr(self._identity_manager, name)
+    
+    def __setattr__(self, name, value):
+        """Delegate attribute setting to the wrapped IdentityManager instance"""
+        if name in ['_instance', '_lock', '_identity_manager']:
+            # These are singleton-specific attributes
+            super().__setattr__(name, value)
+        else:
+            # Delegate to the wrapped instance
+            if hasattr(self, '_identity_manager') and self._identity_manager is not None:
+                setattr(self._identity_manager, name, value)
+            else:
+                super().__setattr__(name, value)
+    
+    @classmethod
+    def get_instance(cls):
+        """Get the singleton instance"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    @classmethod
+    def reset_instance(cls):
+        """Reset the singleton instance (useful for testing or cleanup)"""
+        with cls._lock:
+            if cls._instance and cls._instance._identity_manager:
+                cls._instance._identity_manager.logout()
+            cls._instance = None
+            cls._identity_manager = None
+
 
 class GovernmentSchemeTool(BaseTool):
     name: str ="government_scheme_search"
@@ -40,13 +98,9 @@ class UserAuthenticationTool(BaseTool):
     name: str = "user_authentication"
     description: str = "Authenticate users through face recognition. Supports login, logout, and verification operations."
     
-    _identity_manager: Optional[IdentityManager] = None
-    
     @property
     def identity_manager(self) -> IdentityManager:
-        if self._identity_manager is None:
-            self._identity_manager = IdentityManager()
-        return self._identity_manager
+        return IdentityManagerSingleton.get_instance()
     
     def _run(self, action: str, **kwargs) -> str:
         """
@@ -117,15 +171,11 @@ class UserAuthenticationTool(BaseTool):
 class PIIRetrievalTool(BaseTool):
     """Tool to check if specific PII exists without revealing the actual data"""
     name: str = "pii_retrieval_check"
-    description: str = "Check if specific PII data exists for the authenticated user without revealing the actual data"
-    
-    _identity_manager: Optional[IdentityManager] = None
+    description: str = "Check if specific PII data exists for the authenticated user"
     
     @property
     def identity_manager(self) -> IdentityManager:
-        if self._identity_manager is None:
-            self._identity_manager = IdentityManager()
-        return self._identity_manager
+        return IdentityManagerSingleton.get_instance()
     
     def _run(self, data_type: str) -> str:
         """
@@ -175,13 +225,9 @@ class PIIWriterTool(BaseTool):
     name: str = "pii_writer"
     description: str = "Use PII data to fill forms or applications without revealing the actual data to the agent"
     
-    _identity_manager: Optional[IdentityManager] = None
-    
     @property
     def identity_manager(self) -> IdentityManager:
-        if self._identity_manager is None:
-            self._identity_manager = IdentityManager()
-        return self._identity_manager
+        return IdentityManagerSingleton.get_instance()
     
     def _run(self, data_type: str, target_field: str, form_id: Optional[str] = None) -> str:
         """
@@ -249,13 +295,9 @@ class PIIStorageTool(BaseTool):
     name: str = "pii_storage"
     description: str = "Request user to provide PII data for secure storage. The agent never sees the actual data."
     
-    _identity_manager: Optional[IdentityManager] = None
-    
     @property
     def identity_manager(self) -> IdentityManager:
-        if self._identity_manager is None:
-            self._identity_manager = IdentityManager()
-        return self._identity_manager
+        return IdentityManagerSingleton.get_instance()
     
     def _run(self, data_type: str, prompt_message: str) -> str:
         """
@@ -299,13 +341,9 @@ class UserEnrollmentTool(BaseTool):
     name: str = "user_enrollment"
     description: str = "Enroll new users with face recognition. Personal details are collected securely without agent access."
     
-    _identity_manager: Optional[IdentityManager] = None
-    
     @property
     def identity_manager(self) -> IdentityManager:
-        if self._identity_manager is None:
-            self._identity_manager = IdentityManager()
-        return self._identity_manager
+        return IdentityManagerSingleton.get_instance()
     
     def _run(self, enrollment_request: str) -> str:
         """
