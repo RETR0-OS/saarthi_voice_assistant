@@ -9,6 +9,38 @@ The identity management system provides the following key capabilities:
 - Secure PII storage and retrieval
 - Privacy-preserving PII usage in forms/applications
 - Complete isolation of personal data from AI agents
+- **Optimized performance with singleton pattern**
+
+## Performance Optimization
+
+### Singleton Pattern Implementation
+
+The Identity Manager uses a singleton pattern through the `IdentityManagerSingleton` wrapper class to optimize performance:
+
+**Benefits:**
+- **Reduced Overhead**: Only one IdentityManager instance is created across the entire application
+- **Shared Resources**: Camera resources, database connections, and cryptographic keys are shared efficiently
+- **Memory Optimization**: Prevents multiple heavy instances from consuming excessive memory
+- **Thread Safety**: Uses threading locks to ensure safe concurrent access
+
+**How it Works:**
+```python
+# All tools automatically use the same singleton instance
+auth_tool = UserAuthenticationTool()
+pii_tool = PIIRetrievalTool()
+
+# Both tools share the same underlying IdentityManager instance
+# No additional overhead for creating multiple instances
+```
+
+**Singleton Management:**
+```python
+# Get the singleton instance directly (if needed)
+identity_manager = IdentityManagerSingleton.get_instance()
+
+# Reset the singleton (useful for testing or cleanup)
+IdentityManagerSingleton.reset_instance()
+```
 
 ## Available Tools
 
@@ -104,6 +136,11 @@ result = user_enrollment_tool.run(
 - **Re-authentication**: Critical operations require fresh face verification
 - **Encrypted Storage**: All PII data is encrypted at rest
 
+### Performance Security
+- **Singleton Pattern**: Prevents resource exhaustion attacks through excessive instance creation
+- **Thread Safety**: Concurrent access is safely managed with locks
+- **Memory Protection**: Efficient memory usage prevents information leakage through memory exhaustion
+
 ### Data Flow
 1. User authenticates with face → Identity Manager verifies
 2. Agent requests PII check → Tool confirms existence without revealing data
@@ -146,6 +183,17 @@ result = user_authentication_tool.run(action="login")
 if not result["success"]:
     # Handle authentication failure
     print(f"Authentication failed: {result['message']}")
+```
+
+### 5. Efficient Resource Usage
+```python
+# Good - Multiple tools share the same IdentityManager instance
+auth_tool = UserAuthenticationTool()
+pii_tool = PIIRetrievalTool()
+writer_tool = PIIWriterTool()
+
+# All tools automatically use the singleton instance
+# No need to manually manage instance creation
 ```
 
 ## Integration Examples
@@ -209,6 +257,45 @@ for doc in available_docs:
 2. **Hardware Security**: Wrapping keys are stored in hardware-backed secure storage when available.
 3. **No Manual Override**: There is no way for agents to bypass privacy protections and access raw PII.
 4. **Audit Trail**: All PII usage is logged for security auditing (without exposing the data itself).
+5. **Performance Optimization**: Singleton pattern ensures efficient resource usage across the application.
+
+## Advanced Usage
+
+### Singleton Instance Management
+
+```python
+# Get direct access to the singleton (if needed for advanced operations)
+from crew.tools import IdentityManagerSingleton
+
+# Get the singleton instance
+identity_manager = IdentityManagerSingleton.get_instance()
+
+# Check if instance is initialized
+if IdentityManagerSingleton._instance is not None:
+    print("IdentityManager singleton is active")
+
+# Reset singleton for testing or cleanup
+IdentityManagerSingleton.reset_instance()
+```
+
+### Thread Safety Considerations
+
+```python
+# The singleton is thread-safe and can be used in concurrent scenarios
+import threading
+
+def worker_function():
+    auth_tool = UserAuthenticationTool()
+    # Each thread safely accesses the same singleton instance
+    result = auth_tool.run(action="status")
+
+# Multiple threads can safely use the tools
+threads = []
+for i in range(5):
+    thread = threading.Thread(target=worker_function)
+    threads.append(thread)
+    thread.start()
+```
 
 ## Troubleshooting
 
@@ -224,4 +311,7 @@ for doc in available_docs:
    - Solution: User's face must match the enrolled biometric. Ensure good lighting and camera angle.
 
 4. **"Failed to retrieve secure key"**
-   - Solution: User may need to re-enroll if secure storage was corrupted. 
+   - Solution: User may need to re-enroll if secure storage was corrupted.
+
+5. **Performance Issues**
+   - Solution: The singleton pattern should prevent most performance issues. If problems persist, check for resource leaks or consider calling `IdentityManagerSingleton.reset_instance()` to start fresh. 
