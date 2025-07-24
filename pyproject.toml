@@ -15,4 +15,8 @@ dependencies = [
     "speechrecognition>=3.14.3",
     "streamlit>=1.47.0",
     "transformers>=4.53.3",
+    "crewai>=0.150.0",
+    "crewai-tools>=0.0.1",
+    "langchain-community>=0.3.27",
+    "dotenv>=0.9.9",
 ]
