@@ -3,8 +3,8 @@ from crewai import Agent, Task, Crew, Process
 from langchain_ollama import ChatOllama
 from dotenv import load_dotenv
 # from textwrap import dedent
-from agents import CustomAgents
-from tasks import CustomTasks
+from .agents import CustomAgents
+from .tasks import CustomTasks
 
 # Install duckduckgo-search for this example:
 # !pip install -U duckduckgo-search
@@ -109,19 +109,3 @@ class CustomCrew:
         
         result = enrollment_crew.kickoff()
         return result
-
-
-# This is the main function that you will use to run your custom crew.
-if __name__ == "__main__":
-    custom_crew = CustomCrew()
-    
-    # Choose which example to run
-    # result = custom_crew.run()  # Original research example
-    # result = custom_crew.run_identity_example()  # Identity management example
-    # result = custom_crew.run_enrollment_example()  # User enrollment example
-    
-    result = custom_crew.run()
-    print("\n\n########################")
-    print("## Here is you custom crew run result:")
-    print("########################\n")
-    print(result)

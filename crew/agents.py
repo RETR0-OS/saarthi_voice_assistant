@@ -1,7 +1,7 @@
 from crewai import Agent
 from crewai import LLM
 from textwrap import dedent
-from tools import (
+from .tools import (
     DateTimeTool, 
     GovernmentSchemeTool, 
     UserAuthenticationTool,
@@ -95,7 +95,7 @@ class CustomAgents:
             role="Identity and Security Specialist",
             goal=dedent("""
                 Manage user authentication through face recognition and handle PII data 
-                securely without ever accessing or viewing the actual personal information.
+                securely without ever accessing the actual personal information.
                 Ensure all identity operations maintain the highest level of privacy.
             """),
             backstory=dedent("""

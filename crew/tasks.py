@@ -1,14 +1,17 @@
 # To know more about the Task class, visit: https://docs.crewai.com/concepts/tasks
 from crewai import Task
-from agents import CustomAgents
+from .agents import CustomAgents
 from textwrap import dedent
 
 
 class CustomTasks:
-    def __tip_section(self):
+
+    @staticmethod
+    def __tip_section():
         return "If you do your BEST WORK, I'll give you a $10,000 commission!"
 
-    def create_research_task(self, query: str, country: str):
+    @staticmethod
+    def create_research_task(query: str, country: str):
         agents = CustomAgents()
         return Task(
             description=f'''Research active government schemes and policies related to: {query}
@@ -24,10 +27,11 @@ class CustomTasks:
             
             Prioritize official government sources and verified information.''',
             expected_output='Detailed list of active government schemes with comprehensive information',
-            agent=agents.create_research_agent()
+            agent=agents.create_web_search_agent()
     )
     
-    def create_user_authentication_task(self):
+    @staticmethod
+    def create_user_authentication_task():
         """Task for authenticating a user through face recognition"""
         agents = CustomAgents()
         return Task(
@@ -45,7 +49,8 @@ class CustomTasks:
             agent=agents.create_identity_agent()
         )
     
-    def create_pii_check_task(self, data_types: list):
+    @staticmethod
+    def create_pii_check_task(data_types: list):
         """Task for checking availability of PII data without accessing it"""
         agents = CustomAgents()
         return Task(
@@ -64,7 +69,8 @@ class CustomTasks:
             agent=agents.create_identity_agent()
         )
     
-    def create_scheme_application_task(self, scheme_name: str, required_fields: dict):
+    @staticmethod
+    def create_scheme_application_task(scheme_name: str, required_fields: dict):
         """Task for applying to a government scheme using secure PII data"""
         agents = CustomAgents()
         return Task(
@@ -81,10 +87,12 @@ class CustomTasks:
                 Remember: You cannot see the actual PII data, only confirm it was used successfully.
             """),
             expected_output=f"Confirmation that the {scheme_name} application form was filled with user's PII data",
-            agent=agents.create_scheme_application_agent()
+            agent=agents.create_scheme_application_agent(),
+            human_input=True
         )
     
-    def create_user_enrollment_task(self):
+    @staticmethod
+    def create_user_enrollment_task():
         """Task for enrolling a new user"""
         agents = CustomAgents()
         return Task(
@@ -92,17 +100,21 @@ class CustomTasks:
                 Initiate the enrollment process for a new user:
                 
                 1. Start the enrollment process
-                2. Guide the user through the secure enrollment flow
+                2. Ask user for first name, last name, date of birth, and phone number
+                3. Use the user enrollment tool to securely store this information
                 3. Confirm when enrollment is complete
                 
-                Note: All personal information will be collected through a secure interface
-                that you cannot access. You will only receive status updates.
+                Note: All personal information will be stored through a secure interface
+                that you cannot access. You will only pass the input values to the interface and
+                receive status updates.
             """),
             expected_output="Enrollment status report confirming if new user was successfully enrolled",
-            agent=agents.create_identity_agent()
+            agent=agents.create_identity_agent(),
+            human_input=True
         )
     
-    def create_secure_pii_storage_task(self, data_types_to_store: list):
+    @staticmethod
+    def create_secure_pii_storage_task(data_types_to_store: list):
         """Task for requesting PII data storage from user"""
         agents = CustomAgents()
         return Task(
@@ -114,12 +126,12 @@ class CustomTasks:
                 1. Verify user is authenticated
                 2. Send a secure request for the specific PII data
                 3. Provide appropriate prompts explaining why the data is needed
-                4. Confirm when the request has been sent
-                
-                The user will enter their data through a secure interface that you cannot access.
+                4. Wait for user to provide the data
+                5. Confirm when the request has been sent
             """),
             expected_output="Status report confirming which PII data storage requests were sent to the user",
-            agent=agents.create_identity_agent()
+            agent=agents.create_identity_agent(),
+            human_input=True
         )
 
     

@@ -1,66 +1,10 @@
 from crewai.tools import BaseTool
 from langchain_community.tools import DuckDuckGoSearchRun
 import datetime
-from identity_wallet.identity_manager.identity_manager import IdentityManager
-from typing import Dict, Any, Optional
+from typing import Optional
 import json
-import threading
-
-
-class IdentityManagerSingleton:
-    """
-    Singleton wrapper for IdentityManager to ensure only one instance exists.
-    This reduces the high overhead of creating multiple IdentityManager instances.
-    """
-    _instance = None
-    _lock = threading.Lock()
-    _identity_manager = None
-    
-    def __new__(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super(IdentityManagerSingleton, cls).__new__(cls)
-        return cls._instance
-    
-    def __init__(self):
-        # Only initialize once
-        if self._identity_manager is None:
-            with self._lock:
-                if self._identity_manager is None:
-                    self._identity_manager = IdentityManager()
-    
-    def __getattr__(self, name):
-        """Delegate all attribute access to the wrapped IdentityManager instance"""
-        return getattr(self._identity_manager, name)
-    
-    def __setattr__(self, name, value):
-        """Delegate attribute setting to the wrapped IdentityManager instance"""
-        if name in ['_instance', '_lock', '_identity_manager']:
-            # These are singleton-specific attributes
-            super().__setattr__(name, value)
-        else:
-            # Delegate to the wrapped instance
-            if hasattr(self, '_identity_manager') and self._identity_manager is not None:
-                setattr(self._identity_manager, name, value)
-            else:
-                super().__setattr__(name, value)
-    
-    @classmethod
-    def get_instance(cls):
-        """Get the singleton instance"""
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-    
-    @classmethod
-    def reset_instance(cls):
-        """Reset the singleton instance (useful for testing or cleanup)"""
-        with cls._lock:
-            if cls._instance and cls._instance._identity_manager:
-                cls._instance._identity_manager.logout()
-            cls._instance = None
-            cls._identity_manager = None
+from .utilities.IdentityManger import IdentityManagerSingleton
+from identity_wallet.identity_manager.identity_manager import IdentityManager
 
 
 class GovernmentSchemeTool(BaseTool):
@@ -339,28 +283,43 @@ class UserEnrollmentTool(BaseTool):
     def identity_manager(self) -> IdentityManager:
         return IdentityManagerSingleton.get_instance()
     
-    def _run(self, enrollment_request: str) -> str:
+    def _run(self, enrollment_request: dict) -> str:
         """
         Initiate user enrollment process.
         
         Args:
-            enrollment_request: Description of enrollment request
+            enrollment_request: A dictionary object containing the user's first name, last name, phone number, and DOB
+
+        Dictionary keys: {first_name, last_name, phone, dob}
             
         Returns:
             JSON string with enrollment status
         """
         try:
-            # In a real implementation, this would trigger a secure UI
-            # that collects user details directly without agent access
-            
-            return json.dumps({
-                "success": True,
-                "message": "User enrollment process initiated",
-                "status": "awaiting_user_data",
-                "instructions": "User will be prompted to provide details and capture face biometrics",
-                "note": "All personal information will be collected securely without agent access"
-            })
-            
+
+            identity_manager = IdentityManagerSingleton.get_instance()
+
+            try:
+                result = identity_manager.add_user(
+                    first_name=enrollment_request.get("first_name"),
+                    last_name=enrollment_request.get("last_name"),
+                    phone=enrollment_request.get("phone", 1234567890),
+                    dob=enrollment_request.get("dob", "2000-01-01")
+                )
+
+                if not result["result"]:
+                    return json.dumps({
+                        "success": False,
+                        "message": result.get("error", "User enrollment failed")
+                    })
+
+                return json.dumps(result)
+
+            except ValueError:
+                return json.dumps({
+                    "success": False,
+                    "message": "Invalid data provided for enrollment. Required fields are first_name, last_name, phone, and dob."
+                })
         except Exception as e:
             return json.dumps({
                 "success": False,
