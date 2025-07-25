@@ -283,14 +283,11 @@ class UserEnrollmentTool(BaseTool):
     def identity_manager(self) -> IdentityManager:
         return IdentityManagerSingleton.get_instance()
     
-    def _run(self, enrollment_request: dict) -> str:
+    def _run(self) -> str:
         """
         Initiate user enrollment process.
-        
-        Args:
-            enrollment_request: A dictionary object containing the user's first name, last name, phone number, and DOB
 
-        Dictionary keys: {first_name, last_name, phone, dob}
+        Dictionary keys: {first_name, last_name, phone (10 digits), dob (in YYYY-MM-DD format)}
             
         Returns:
             JSON string with enrollment status
@@ -300,11 +297,15 @@ class UserEnrollmentTool(BaseTool):
             identity_manager = IdentityManagerSingleton.get_instance()
 
             try:
+                first_name = input("Enter your first name: ")
+                last_name = input("Enter your last name: ")
+                phone = input("Enter your phone number (10 digits): ")
+                dob = input("Enter your date of birth (YYYY-MM-DD): ")
                 result = identity_manager.add_user(
-                    first_name=enrollment_request.get("first_name"),
-                    last_name=enrollment_request.get("last_name"),
-                    phone=enrollment_request.get("phone", 1234567890),
-                    dob=enrollment_request.get("dob", "2000-01-01")
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=phone,
+                    dob=dob
                 )
 
                 if not result["result"]:
