@@ -21,4 +21,6 @@ dependencies = [
     "dotenv>=0.9.9",
     "duckduckgo-search>=8.1.1",
     "keyring>=25.6.0",
+    "langgraph>=0.5.4",
+    "grandalf>=0.8",
 ]

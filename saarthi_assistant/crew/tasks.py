@@ -100,13 +100,11 @@ class CustomTasks:
                 Initiate the enrollment process for a new user:
                 
                 1. Start the enrollment process
-                2. Ask user for first name, last name, date of birth, and phone number
-                3. Use the user enrollment tool to securely store this information
+                2. Use the user enrollment tool to securely enroll the user
                 3. Confirm when enrollment is complete
                 
                 Note: All personal information will be stored through a secure interface
-                that you cannot access. You will only pass the input values to the interface and
-                receive status updates.
+                that you cannot access. You will only receive status updates.
             """),
             expected_output="Enrollment status report confirming if new user was successfully enrolled",
             agent=agents.create_identity_agent(),

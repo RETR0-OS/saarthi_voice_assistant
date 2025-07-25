@@ -286,9 +286,9 @@ class UserEnrollmentTool(BaseTool):
     def _run(self) -> str:
         """
         Initiate user enrollment process.
+        Prompts user for first name, last name, phone number, and date of birth.
+        enrolls the user securely without exposing any PII to the agent.
 
-        Dictionary keys: {first_name, last_name, phone (10 digits), dob (in YYYY-MM-DD format)}
-            
         Returns:
             JSON string with enrollment status
         """
