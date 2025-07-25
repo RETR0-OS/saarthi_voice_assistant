@@ -1,4 +1,4 @@
-from crew.main import CustomCrew
+from saarthi_assistant.crew.main import CustomCrew
 
 if __name__ == "__main__":
     custom_crew = CustomCrew()
