@@ -7,102 +7,257 @@ import wave
 import time
 from saarthi_assistant.voice.main import transcribe_audio_numpy
 
-# --- CUSTOM CSS for pastel background and header fixes ---
+# --- ENHANCED CSS for modern, appealing UI ---
 st.markdown("""
 <style>
-/* Global pastel background */
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Global styling with improved background */
 .appview-container, .main, body, html {
-    background: linear-gradient(135deg, #FFF6F9 0%, #DDF6F3 100%) !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     min-height: 100vh !important;
+    font-family: 'Inter', sans-serif !important;
 }
-/* Header hut/icon fix and top spacing */
-.main-header {
-    margin-top: 0px !important;
-    margin-bottom: 14px !important;
-    padding-top: 26px !important;
-    display: flex; 
-    align-items: center;
-    font-size: 2.6rem;
-}
-.main-header img, .main-header svg, .main-header .emoji {
-    height: 40px !important;
-    width: 40px !important;
-    margin-right: 12px !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    vertical-align: middle !important;
-}
-.block-container {
-    padding-top: 1rem !important;
-}
-.main-content {
-    min-height: unset !important;
-    padding-top: 0px !important;
-}
-.chat-wrapper {
-    min-height: 100px !important;
-    margin-top: 0px !important;
-}
-.messages-container {
-    max-height: 53vh !important;
-    min-height: 70px !important;
-    overflow-y: auto !important;
-    padding: 0px 0 8px 0 !important;
-    background: none !important;
-    scroll-behavior: smooth;
-}
-.user-message {
-    background: linear-gradient(135deg, #B5EAD7, #C7CEDB);
-    color: #2E3B42;
-    padding: 14px 20px;
-    border-radius: 20px 20px 7px 20px;
-    margin: 10px 0 10px auto;
-    max-width: 80%;
-    font-size: 16px;
-    box-shadow: 0 2px 15px rgba(181, 234, 215, 0.17);
-    animation: slideInRight 0.3s ease;
-}
-.bot-message {
-    background: linear-gradient(135deg, #FFB3BA, #FFDFBA);
-    color: #5D4037;
-    padding: 14px 20px;
-    border-radius: 20px 20px 20px 7px;
-    margin: 10px auto 10px 0;
-    max-width: 80%;
-    font-size: 16px;
-    box-shadow: 0 2px 15px rgba(255, 179, 186, 0.17);
-    animation: slideInLeft 0.3s ease;
-}
-@keyframes slideInRight {
-    from {transform: translateX(40px); opacity:0;}
-    to {transform: translateX(0); opacity:1;}
-}
-@keyframes slideInLeft {
-    from {transform: translateX(-40px); opacity:0;}
-    to {transform: translateX(0); opacity:1;}
-}
-.question-bubbles-container {
-    margin-bottom: 8px !important;
-    padding: 5px 0 10px 0 !important;
-    gap: 8px !important;
-}
-.input-area {
-    background: rgba(255,255,255,.97) !important;
-    border-radius: 17px !important;
-    padding: 10px 0 8px 0 !important;
-    margin-top: 4px !important;
-}
-.stButton > button {
-    background: linear-gradient(135deg, #FFB3DE, #FFCCCB) !important;
-    color: #5D4037 !important;
+
+/* Main container with glass morphism effect */
+.main > div {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(20px) !important;
     border-radius: 20px !important;
-    padding: 10px 15px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    min-width: 130px !important;
-    box-shadow: 0 4px 15px rgba(255, 179, 222, 0.25) !important;
-    margin-right: 4px !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    margin: 20px !important;
+    padding: 30px !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
 }
+
+/* Header styling with better typography */
+.main-header {
+    margin: 0 0 30px 0 !important;
+    padding: 20px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 3rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1)) !important;
+    border-radius: 20px !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.main-header .emoji {
+    font-size: 3.5rem !important;
+    margin-right: 15px !important;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)) !important;
+}
+
+/* Chat container styling */
+.chat-wrapper {
+    min-height: 400px !important;
+    margin: 20px 0 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Question bubbles with improved styling */
+.question-bubbles-container {
+    margin-bottom: 25px !important;
+    padding: 15px 0 !important;
+    gap: 15px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+}
+
+/* Enhanced button styling */
+.stButton > button {
+    background: linear-gradient(135deg, #ff6b9d, #c44569) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+    min-width: 140px !important;
+    height: 45px !important;
+    box-shadow: 0 8px 25px rgba(255, 107, 157, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-transform: none !important;
+    letter-spacing: 0.5px !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 35px rgba(255, 107, 157, 0.4) !important;
+    background: linear-gradient(135deg, #ff5e94, #b73e5e) !important;
+}
+
+.stButton > button:active {
+    transform: translateY(0px) !important;
+    box-shadow: 0 5px 15px rgba(255, 107, 157, 0.3) !important;
+}
+
+/* Messages container with better scrolling */
+.messages-container {
+    max-height: 400px !important;
+    min-height: 150px !important;
+    overflow-y: auto !important;
+    padding: 20px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-radius: 15px !important;
+    margin-bottom: 20px !important;
+    scroll-behavior: smooth !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Custom scrollbar */
+.messages-container::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.messages-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 3px !important;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 3px !important;
+}
+
+/* Enhanced message bubbles */
+.user-message {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    color: #ffffff !important;
+    padding: 16px 22px !important;
+    border-radius: 25px 25px 8px 25px !important;
+    margin: 15px 0 15px auto !important;
+    max-width: 75% !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    line-height: 1.5 !important;
+}
+
+.bot-message {
+    background: linear-gradient(135deg, #ff6b9d, #c44569) !important;
+    color: #ffffff !important;
+    padding: 16px 22px !important;
+    border-radius: 25px 25px 25px 8px !important;
+    margin: 15px auto 15px 0 !important;
+    max-width: 75% !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 8px 25px rgba(255, 107, 157, 0.3) !important;
+    animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    line-height: 1.5 !important;
+}
+
+/* Improved animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Input area styling */
+.input-area {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    margin-top: 20px !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Mic button special styling */
+#mic_btn {
+    background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+    font-size: 16px !important;
+    padding: 15px 30px !important;
+    min-width: 160px !important;
+    height: 55px !important;
+    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4) !important;
+}
+
+#mic_btn:hover {
+    background: linear-gradient(135deg, #43a3f5, #00d9e7) !important;
+    box-shadow: 0 15px 40px rgba(79, 172, 254, 0.5) !important;
+}
+
+/* Streamlit info/success/error styling */
+.stAlert {
+    border-radius: 15px !important;
+    border: none !important;
+    backdrop-filter: blur(10px) !important;
+    font-weight: 500 !important;
+}
+
+.stAlert > div {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #333 !important;
+    border-radius: 15px !important;
+    padding: 15px 20px !important;
+}
+
+/* Footer styling */
+.footer {
+    text-align: center !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    padding: 20px !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 15px !important;
+    margin-top: 30px !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Spinner customization */
+.stSpinner > div {
+    border-color: #667eea transparent #667eea transparent !important;
+}
+
+/* Block container improvements */
+.block-container {
+    padding: 2rem 1rem !important;
+    max-width: 1000px !important;
+}
+
+/* Remove Streamlit branding */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -175,8 +330,8 @@ init_tts()
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "greeted" not in st.session_state:
-    greeting = ("Hello! I am your government scheme assistant. "
-                "I can help you learn about various government schemes and programs.")
+    greeting = ("Hello! I am Saarthi, your intelligent government scheme assistant. "
+                "I can help you discover and learn about various government schemes and programs.")
     st.session_state.greeted = True
     st.session_state.messages.append({"type": "bot", "content": greeting})
     st.session_state.pending_tts = greeting
@@ -187,8 +342,8 @@ if "is_typing" not in st.session_state:
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 st.markdown(
     '<h1 class="main-header">'
-    '<span class="emoji" style="font-size:48px; margin-right:10px; vertical-align:middle;">🏠</span> '
-    'Government Scheme Assistant'
+    '<span class="emoji">🧭</span> '
+    'Saarthi'
     '</h1>', unsafe_allow_html=True,
 )
 
@@ -197,7 +352,7 @@ st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
 st.markdown('<div class="question-bubbles-container">', unsafe_allow_html=True)
 
 questions = [
-    "🏠 Housing Scheme",
+    "🏠 Housing Schemes",
     "💰 Pension Info",
     "🎓 Education Benefits",
     "🌾 Farmer Schemes"
@@ -240,11 +395,9 @@ setTimeout(function() {
 </script>
 """, unsafe_allow_html=True)
 
-# --- Input area with mic button only ---
+# --- Input area with mic button ---
 st.markdown('<div class="input-area">', unsafe_allow_html=True)
-_, input_col2 = st.columns([3,1])
-with input_col2:
-    mic_button = st.button("🎙 Speak", key="mic_btn", help="Click to speak your question")
+mic_button = st.button("🎙 Speak to Saarthi", key="mic_btn", help="Click to speak your question")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if mic_button:
@@ -292,8 +445,8 @@ if 'pending_tts' in st.session_state:
 # --- Footer ---
 st.markdown("---", unsafe_allow_html=True)
 st.markdown(
-    '<div style="text-align: center; color: #5D4037; padding: 5px; font-size: 15px;">'
-    '💙 This service is completely free | Made to provide accurate information about government schemes'
+    '<div class="footer">'
+    '🌟 Saarthi - Your intelligent guide to government schemes | Powered by AI | Completely Free'
     '</div>',
     unsafe_allow_html=True
 )
