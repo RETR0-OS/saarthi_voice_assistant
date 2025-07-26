@@ -1,6 +1,11 @@
 import streamlit as st
 import pyttsx3
-import speech_recognition as sr
+import sounddevice as sd
+import numpy as np
+import io
+import wave
+import time
+from saarthi_assistant.voice.main import transcribe_audio_numpy
 
 # --- CUSTOM CSS for pastel background and header fixes ---
 st.markdown("""
@@ -100,6 +105,47 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+# --- Audio Recording Functions ---
+def record_audio(duration=5, sample_rate=16000):
+    """Record audio using sounddevice and return as numpy array"""
+    try:
+        st.info("🎙️ Recording... Please speak now!")
+        
+        # Record audio
+        recording = sd.rec(int(duration * sample_rate), 
+                          samplerate=sample_rate, 
+                          channels=1, 
+                          dtype=np.float32)
+        sd.wait()  # Wait until recording is finished
+        
+        # Normalize audio to prevent clipping
+        recording = recording.flatten()
+        if np.max(np.abs(recording)) > 0:
+            recording = recording / np.max(np.abs(recording)) * 0.8
+        
+        return recording, sample_rate
+    except Exception as e:
+        st.error(f"Recording failed: {str(e)}")
+        return None, None
+
+def transcribe_with_voice_service(audio_array, sample_rate=16000):
+    """Transcribe audio using the voice service"""
+    try:
+        with st.spinner("🤖 Processing your speech..."):
+            start_time = time.time()
+            result = transcribe_audio_numpy(audio_array, sample_rate)
+            processing_time = time.time() - start_time
+            
+            if result["success"]:
+                st.success(f"✅ Transcription completed in {processing_time:.2f}s")
+                return result["text"]
+            else:
+                st.error(f"❌ Transcription failed: {result['error']}")
+                return None
+    except Exception as e:
+        st.error(f"Voice service error: {str(e)}")
+        return None
 
 # --- TTS engine ---
 def init_tts():
@@ -202,32 +248,41 @@ with input_col2:
 st.markdown('</div>', unsafe_allow_html=True)
 
 if mic_button:
-    recognizer = sr.Recognizer()
-    with st.spinner("Listening... Please speak"):
-        try:
-            with sr.Microphone() as source:
-                speak("Yes, I'm listening.")
-                recognizer.adjust_for_ambient_noise(source, duration=1)
-                audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                print(type(audio))  # Debugging line to check audio type
-            user_input = recognizer.recognize_google(audio)
-            st.session_state.messages.append({"type": "user", "content": user_input})
-            standard_reply = "Thank you for your question. I am processing your request and will get back to you shortly."
-            st.session_state.messages.append({"type": "bot", "content": standard_reply})
-            st.success(f"You said: {user_input}")
-            st.session_state.pending_tts = standard_reply
-        except sr.UnknownValueError:
-            error_msg = "Sorry, I couldn't understand that. Please try again."
+    try:
+        speak("Yes, I'm listening.")
+        
+        # Record audio using sounddevice
+        audio_array, sample_rate = record_audio(duration=5, sample_rate=16000)
+        
+        if audio_array is not None:
+            # Check if audio has enough signal
+            if np.max(np.abs(audio_array)) < 0.01:
+                error_msg = "No speech detected. Please speak louder and try again."
+                st.warning(error_msg)
+                st.session_state.pending_tts = error_msg
+            else:
+                # Transcribe using voice service
+                user_input = transcribe_with_voice_service(audio_array, sample_rate)
+                
+                if user_input and user_input.strip():
+                    st.session_state.messages.append({"type": "user", "content": user_input})
+                    standard_reply = "Thank you for your question. I am processing your request and will get back to you shortly."
+                    st.session_state.messages.append({"type": "bot", "content": standard_reply})
+                    st.success(f"You said: {user_input}")
+                    st.session_state.pending_tts = standard_reply
+                else:
+                    error_msg = "Sorry, I couldn't understand that. Please try again."
+                    st.error(error_msg)
+                    st.session_state.pending_tts = error_msg
+        else:
+            error_msg = "Recording failed. Please check your microphone and try again."
             st.error(error_msg)
             st.session_state.pending_tts = error_msg
-        except sr.RequestError:
-            error_msg = "There's an internet connection issue. Please try again later."
-            st.error(error_msg)
-            st.session_state.pending_tts = error_msg
-        except sr.WaitTimeoutError:
-            error_msg = "No speech detected. Please try again."
-            st.warning(error_msg)
-            st.session_state.pending_tts = error_msg
+            
+    except Exception as e:
+        error_msg = f"An error occurred: {str(e)}. Please try again."
+        st.error(error_msg)
+        st.session_state.pending_tts = error_msg
 
 # --- AFTER ALL UI, run TTS if pending ---
 if 'pending_tts' in st.session_state:
