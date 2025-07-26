@@ -1,0 +1,379 @@
+from typing import Dict, Any, Optional, List, Literal
+from typing_extensions import TypedDict, Annotated
+from langgraph.graph import StateGraph, START, END, add_messages
+from langgraph.prebuilt import ToolNode, InjectedState
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage, trim_messages
+from langchain_core.tools import tool
+from langchain_ollama.chat_models import ChatOllama
+import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
+
+from ..utilities.IdentityManger import IdentityManagerSingleton
+
+# State Schema
+class AgentState(TypedDict):
+    session_valid: bool
+    messages: Annotated[List[BaseMessage], add_messages]
+    user_query: Optional[str]
+    response: Optional[str]
+    pii_cache: Dict[str, str]
+    conversation_summary: Optional[str]
+    error_message: Optional[str]
+
+# Input/Output Schemas
+class AgentInputState(TypedDict):
+    user_query: str
+
+class AgentOutputState(TypedDict):
+    response: str
+    session_valid: bool
+
+
+reasoning_qwen = ChatOllama(
+    model="qwen3:4b",
+    temperature=0.1,
+    reasoning=True,
+    top_p=0.4,
+    top_k=10,
+    repeat_penalty=1.5
+)
+
+qwen_fast = ChatOllama(
+    model="qwen3:4b",
+    temperature=0.1,
+    reasoning=False,
+    top_p=0.4,
+    top_k=10,
+    num_predict=1024,
+    repeat_penalty=1.5
+)
+
+# Checkpointer for agent sessions
+agent_checkpointer = SqliteSaver(
+    sqlite3.connect("agent_checkpoint.db", check_same_thread=False),
+    serde=EncryptedSerializer.from_pycryptodome_aes(),
+)
+
+# Constants
+MAX_MESSAGE_HISTORY = 10
+
+# Tools
+@tool
+def fetch_user_pii(
+    data_keys: List[str],
+    state: Annotated[dict, InjectedState]
+) -> Dict[str, Any]:
+    """
+    Fetch PII data for the authenticated user.
+    
+    Args:
+        data_keys: List of PII keys to fetch (e.g., ["adhaar_number", "pan_number"])
+        state: Injected state containing session info
+    
+    Returns:
+        Dict with success status and message
+    """
+    # Validate session
+    if not state.get("session_valid", False):
+        return {
+            "success": False,
+            "error": "User session not valid"
+        }
+    
+    identity_manager = IdentityManagerSingleton.get_instance()
+    
+    # Verify user is still authenticated
+    if not identity_manager.verify_user():
+        return {
+            "success": False,
+            "error": "User not authenticated"
+        }
+    
+    try:
+        # Get current cache state
+        current_cache = state.get("pii_cache", {})
+        retrieved_data = {}
+        cache_updates = {}
+        missing_keys = []
+        
+        # Check cache first
+        for key in data_keys:
+            if key in current_cache:
+                retrieved_data[key] = current_cache[key]
+                print(f"Retrieved {key} from session cache")
+            else:
+                missing_keys.append(key)
+        
+        # Fetch missing keys from secure storage
+        if missing_keys:
+            # Re-authenticate user before accessing PII
+            auth_result = identity_manager.authenticate_user()
+            if not auth_result:
+                return {
+                    "success": False,
+                    "error": "User re-authentication failed"
+                }
+            
+            # Fetch the missing PII data
+            for key in missing_keys:
+                result = identity_manager.decrypt_pii_data(key)
+                if result.get("result"):
+                    retrieved_data[key] = result["data"]
+                    cache_updates[key] = result["data"]  # Cache the decrypted data
+                    print(f"Retrieved and cached {key} from secure storage")
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Failed to retrieve {key}: {result.get('error', 'Unknown error')}"
+                    }
+        
+        print("PII data retrieved successfully")
+        print(retrieved_data)  # Display to user (not returned to LLM)
+        
+        # Update state with new cache entries
+        state["pii_cache"].update(cache_updates)
+        
+        return {
+            "success": True,
+            "message": "PII data retrieved successfully"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"PII retrieval failed: {str(e)}"
+        }
+
+@tool
+def government_scheme_lookup(query: str) -> Dict[str, Any]:
+    """
+    Look up government schemes based on user query.
+    
+    Args:
+        query: Search query for government schemes
+    
+    Returns:
+        Dict with scheme information
+    """
+    # Simple implementation for demo - can be enhanced with actual database
+    schemes = {
+        "housing": {
+            "name": "Pradhan Mantri Awas Yojana",
+            "description": "Affordable housing scheme for economically weaker sections",
+            "eligibility": "Annual income below 3 lakhs",
+            "documents": ["Aadhaar card", "Income certificate", "Bank account"],
+            "apply_at": "Your nearest government office or online portal"
+        },
+        "pension": {
+            "name": "National Social Assistance Programme",
+            "description": "Old age pension scheme for senior citizens",
+            "eligibility": "Age 60+ and below poverty line",
+            "documents": ["Aadhaar card", "Age proof", "BPL certificate"],
+            "apply_at": "Anganwadi center or Tehsil office"
+        },
+        "education": {
+            "name": "National Scholarship Portal",
+            "description": "Various scholarships for students",
+            "eligibility": "Based on merit and income criteria",
+            "documents": ["Mark sheets", "Income certificate", "Caste certificate (if applicable)"],
+            "apply_at": "scholarships.gov.in"
+        },
+        "farmer": {
+            "name": "PM Kisan Samman Nidhi",
+            "description": "₹6000 annual income support for farmers",
+            "eligibility": "Land-owning farmers",
+            "documents": ["Land documents", "Aadhaar card", "Bank account"],
+            "apply_at": "Agriculture office or pmkisan.gov.in"
+        }
+    }
+    
+    # Simple keyword matching
+    query_lower = query.lower()
+    for key, scheme in schemes.items():
+        if key in query_lower or scheme["name"].lower() in query_lower:
+            return {
+                "success": True,
+                "scheme": scheme
+            }
+    
+    return {
+        "success": True,
+        "message": "No specific scheme found. Please contact your local government office for more information.",
+        "general_info": "Visit india.gov.in for comprehensive scheme information"
+    }
+
+# Node Functions
+def validate_session(state: AgentState) -> AgentState:
+    """Validate that the user session is still active"""
+    identity_manager = IdentityManagerSingleton.get_instance()
+    
+    if identity_manager.verify_user():
+        return {
+            "session_valid": True
+        }
+    else:
+        return {
+            "session_valid": False,
+            "error_message": "Session expired. Please re-authenticate.",
+            "response": "Your session has expired. Please authenticate again to continue."
+        }
+
+def process_query(state: AgentState) -> AgentState:
+    """Process the user query and prepare for LLM"""
+    user_query = state.get("user_query", "")
+    
+    if not user_query:
+        return {
+            "response": "I didn't receive your query. Please try again.",
+            "error_message": "No query provided"
+        }
+    
+    # Add system message if it's the first message
+    messages = state.get("messages", [])
+    if not any(isinstance(msg, SystemMessage) for msg in messages):
+        system_msg = SystemMessage(content="""You are Saarthi, an intelligent government scheme assistant for Indian citizens. 
+You help users discover and apply for government schemes. You have access to:
+1. fetch_user_pii - to retrieve user's stored documents like Aadhaar, PAN, etc.
+2. government_scheme_lookup - to search for relevant government schemes
+
+Be helpful, clear, and concise. When users ask about schemes, provide specific information about eligibility, required documents, and application process.
+Always communicate in simple, easy-to-understand language.""")
+        messages = [system_msg] + messages
+    
+    # Add user message
+    messages.append(HumanMessage(content=user_query))
+    
+    return {
+        "messages": messages
+    }
+
+def summarize_conversation(state: AgentState) -> AgentState:
+    """Summarize old messages to save space"""
+    messages = state.get("messages", [])
+    
+    if len(messages) <= MAX_MESSAGE_HISTORY:
+        return state
+    
+    # Get messages to summarize (keep system message and summarize the rest)
+    system_msg = next((msg for msg in messages if isinstance(msg, SystemMessage)), None)
+    messages_to_summarize = messages[1:MAX_MESSAGE_HISTORY] if system_msg else messages[:MAX_MESSAGE_HISTORY]
+    
+    # Create summary prompt
+    summary_prompt = SystemMessage(content="Summarize the following conversation between the user and assistant in bullet points, keeping key information about schemes discussed, user queries, and any important decisions:")
+    
+    # Use fast LLM for summarization
+    summary_response = qwen_fast.invoke([summary_prompt] + messages_to_summarize)
+    
+    # Update conversation summary
+    old_summary = state.get("conversation_summary", "")
+    if old_summary:
+        new_summary = f"{old_summary}\n\n{summary_response.content}"
+    else:
+        new_summary = summary_response.content
+    
+    # Keep only recent messages
+    recent_messages = [system_msg] if system_msg else []
+    recent_messages.extend(messages[-MAX_MESSAGE_HISTORY:])
+    
+    return {
+        "conversation_summary": new_summary,
+        "messages": recent_messages
+    }
+
+def llm_interaction(state: AgentState) -> AgentState:
+    """Handle LLM interaction with tools"""
+    messages = state.get("messages", [])
+    conversation_summary = state.get("conversation_summary", "")
+    
+    # Prepare context with summary if exists
+    context_messages = []
+    if conversation_summary:
+        context_messages.append(SystemMessage(content=f"Previous conversation summary:\n{conversation_summary}"))
+    context_messages.extend(messages)
+    
+    # Bind tools to LLM
+    llm_with_tools = reasoning_qwen.bind_tools([fetch_user_pii, government_scheme_lookup])
+    
+    try:
+        # Get LLM response
+        response = llm_with_tools.invoke(context_messages)
+        
+        # Check if it's a valid response
+        if response.content:
+            print(f"Assistant: {response.content}")
+            return {
+                "messages": [response],
+                "response": response.content
+            }
+        else:
+            # Handle tool calls in the tool node
+            return {
+                "messages": [response]
+            }
+    except Exception as e:
+        error_msg = f"I encountered an error processing your request: {str(e)}"
+        return {
+            "response": error_msg,
+            "error_message": str(e),
+            "messages": [AIMessage(content=error_msg)]
+        }
+
+def handle_error(state: AgentState) -> AgentState:
+    """Handle errors gracefully"""
+    error_message = state.get("error_message", "An unexpected error occurred")
+    return {
+        "response": f"I apologize, but {error_message}. Please try again or contact support if the issue persists.",
+        "session_valid": False
+    }
+
+# Routing Functions
+def route_session(state: AgentState) -> str:
+    """Route based on session validity"""
+    if state.get("session_valid", False):
+        return "process_query"
+    else:
+        return "handle_error"
+
+def route_llm_response(state: AgentState) -> str:
+    """Check if LLM made tool calls"""
+    messages = state.get("messages", [])
+    if messages and hasattr(messages[-1], "tool_calls") and messages[-1].tool_calls:
+        return "tools"
+    return END
+
+def route_summarize(state: AgentState) -> str:
+    """Check if conversation needs summarization"""
+    messages = state.get("messages", [])
+    if len(messages) > MAX_MESSAGE_HISTORY:
+        return "summarize_conversation"
+    return "llm_interaction"
+
+# Graph Builder Function
+def create_agent_graph():
+    """Create and compile the agent graph"""
+    builder = StateGraph(
+        AgentState,
+        input_schema=AgentInputState,
+        output_schema=AgentOutputState
+    )
+    
+    # Add nodes
+    builder.add_node("validate_session", validate_session)
+    builder.add_node("process_query", process_query)
+    builder.add_node("summarize_conversation", summarize_conversation)
+    builder.add_node("llm_interaction", llm_interaction)
+    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup]))
+    builder.add_node("handle_error", handle_error)
+    
+    # Add edges
+    builder.add_edge(START, "validate_session")
+    builder.add_conditional_edges("validate_session", route_session)
+    builder.add_edge("process_query", "summarize_conversation")
+    builder.add_conditional_edges("summarize_conversation", route_summarize)
+    builder.add_edge("summarize_conversation", "llm_interaction")
+    builder.add_conditional_edges("llm_interaction", route_llm_response)
+    builder.add_edge("tools", "llm_interaction")
+    builder.add_edge("handle_error", END)
+    
+    return builder.compile(checkpointer=agent_checkpointer) 

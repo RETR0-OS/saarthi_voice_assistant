@@ -3,12 +3,16 @@ import pyttsx3
 import sounddevice as sd
 import numpy as np
 import time
+import uuid
 from saarthi_assistant.voice.main import transcribe_audio_numpy
 from saarthi_assistant.sub_graphs.graph_runner import (
     run_authentication, 
     submit_registration_data, 
     submit_pii_data, 
-    reset_authentication
+    reset_authentication,
+    start_agent_conversation,
+    send_agent_message,
+    end_agent_conversation
 )
 
 # --- PAGE CONFIG ---
@@ -485,6 +489,10 @@ def show_pii_form():
                 st.session_state.user_authenticated = True
                 st.session_state.current_mode = "agent"
                 st.session_state.show_pii_form = False
+                # Start agent conversation for new user
+                user_id = st.session_state.user_id or str(uuid.uuid4())
+                st.session_state.user_id = user_id
+                st.session_state.agent_thread_id = start_agent_conversation(user_id)
                 st.success("🎉 Registration complete! Welcome to Saarthi!")
                 st.balloons()
                 st.rerun()
@@ -516,6 +524,12 @@ if "show_pii_form" not in st.session_state:
     st.session_state.show_pii_form = False
 if "auth_notes" not in st.session_state:
     st.session_state.auth_notes = ""
+
+# --- Agent conversation state ---
+if "agent_thread_id" not in st.session_state:
+    st.session_state.agent_thread_id = None
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
 
 # --- HEADER ---
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
@@ -557,6 +571,10 @@ if not st.session_state.user_authenticated:
                     st.session_state.user_authenticated = True
                     st.session_state.current_mode = "agent"
                     st.session_state.auth_notes = result["notes"]
+                    # Start agent conversation
+                    user_id = result.get("user_id", str(uuid.uuid4()))
+                    st.session_state.user_id = user_id
+                    st.session_state.agent_thread_id = start_agent_conversation(user_id)
                     st.success(result["notes"])
                     st.rerun()
                 elif result.get("requires_registration"):
@@ -611,10 +629,22 @@ else:
     for i, q in enumerate(questions):
         with cols[i]:
             if st.button(q, key=f"bubble_{i}", help="Click to ask this question and hear the answer aloud"):
-                st.session_state.messages.append({"type": "user", "content": q})
-                st.session_state.messages.append({"type": "bot", "content": responses[i]})
-                selected_bubble_reply = responses[i]
-                st.session_state.pending_tts = responses[i]
+                # Send question to agent graph
+                with st.spinner("🤖 Processing your query..."):
+                    result = send_agent_message(q, st.session_state.agent_thread_id)
+                
+                if result["success"]:
+                    st.session_state.messages.append({"type": "user", "content": q})
+                    st.session_state.messages.append({"type": "bot", "content": result["response"]})
+                    st.session_state.pending_tts = result["response"]
+                    
+                    # Check if session is still valid
+                    if not result.get("session_valid", True):
+                        st.warning("Session expired. Please re-authenticate.")
+                        st.session_state.user_authenticated = False
+                        st.rerun()
+                else:
+                    st.error(result["response"])
                 st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -654,6 +684,9 @@ if st.session_state.user_authenticated:
             st.session_state.show_registration_form = False
             st.session_state.show_pii_form = False
             st.session_state.messages = []
+            st.session_state.agent_thread_id = None
+            st.session_state.user_id = None
+            end_agent_conversation()
             reset_authentication()
             st.success("Logged out successfully!")
             st.rerun()
@@ -680,11 +713,25 @@ if mic_button:
                 user_input = transcribe_with_voice_service(audio_array, sample_rate)
                 
                 if user_input and user_input.strip():
-                    st.session_state.messages.append({"type": "user", "content": user_input})
-                    standard_reply = "Thank you for your question. I am processing your request and will get back to you shortly."
-                    st.session_state.messages.append({"type": "bot", "content": standard_reply})
-                    st.success(f"You said: {user_input}")
-                    st.session_state.pending_tts = standard_reply
+                    # Send transcribed text to agent graph
+                    with st.spinner("🤖 Processing your query..."):
+                        result = send_agent_message(user_input, st.session_state.agent_thread_id)
+                    
+                    if result["success"]:
+                        st.session_state.messages.append({"type": "user", "content": user_input})
+                        st.session_state.messages.append({"type": "bot", "content": result["response"]})
+                        st.success(f"You said: {user_input}")
+                        st.session_state.pending_tts = result["response"]
+                        
+                        # Check if session is still valid
+                        if not result.get("session_valid", True):
+                            st.warning("Session expired. Please re-authenticate.")
+                            st.session_state.user_authenticated = False
+                            st.rerun()
+                    else:
+                        error_msg = result["response"]
+                        st.error(error_msg)
+                        st.session_state.pending_tts = error_msg
                     st.rerun()  # Force update to show new messages
                 else:
                     error_msg = "Sorry, I couldn't understand that. Please try again."
