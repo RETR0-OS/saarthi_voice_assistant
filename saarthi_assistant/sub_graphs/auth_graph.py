@@ -56,8 +56,11 @@ def clear_user_input():
 def attempt_login(state: AuthState) -> AuthState:
     """Attempt to login using IdentityManager"""
     try:
+        print("Attempting to login...")
         identity_manager = IdentityManagerSingleton.get_instance()
         result = identity_manager.login()
+
+        print(f"Login result: {result}")
         
         if result["result"]:
             return {
@@ -78,21 +81,21 @@ def attempt_login(state: AuthState) -> AuthState:
                     "auth_result": False,
                     "notes": "Face not recognized - registration required",
                     "error_message": error_msg
-                }
+                } # type: ignore
             else:
                 return {
                     "auth_status": "authentication_failed",
                     "auth_result": False,
                     "notes": f"Login failed: {error_msg}",
                     "error_message": error_msg
-                }
+                } # type: ignore
     except Exception as e:
         return {
             "auth_status": "authentication_failed",
             "auth_result": False,
             "notes": f"Authentication error: {str(e)}",
             "error_message": str(e)
-        }
+        } # type: ignore
 
 def collect_registration_data(state: AuthState) -> AuthState:
     """Collect registration data from frontend (HITL)"""
@@ -103,7 +106,7 @@ def collect_registration_data(state: AuthState) -> AuthState:
         return {
             "registration_data": registration_data,
             "notes": "Registration data collected successfully"
-        }
+        } # type: ignore
     else:
         # Wait for user input - frontend will call this again after form submission
         return {
@@ -244,9 +247,13 @@ def create_auth_graph():
         "attempt_login",
         route_auth_result,
         {
-            "authenticated": END,
-            "registration_needed": "collect_registration_data",
-            "authentication_failed": "handle_auth_error"
+            "__end__": END,
+            "collect_registration_data": "collect_registration_data",
+            "register_user": "register_user",
+            "authentication_failed": "handle_auth_error",
+            "collect_pii": "collect_pii",
+            "handle_auth_error": "handle_auth_error"
+
         }
     )
     
@@ -255,8 +262,12 @@ def create_auth_graph():
         "register_user",
         route_auth_result,
         {
-            "pii_collection": "collect_pii",
-            "authentication_failed": "handle_auth_error"
+            "__end__": END,
+            "collect_registration_data": "collect_registration_data",
+            "register_user": "register_user",
+            "authentication_failed": "handle_auth_error",
+            "collect_pii": "collect_pii",
+            "handle_auth_error": "handle_auth_error"
         }
     )
     
@@ -264,8 +275,12 @@ def create_auth_graph():
         "collect_pii",
         route_auth_result,
         {
-            "authenticated": END,
-            "authentication_failed": "handle_auth_error"
+            "__end__": END,
+            "collect_registration_data": "collect_registration_data",
+            "register_user": "register_user",
+            "authentication_failed": "handle_auth_error",
+            "collect_pii": "collect_pii",
+            "handle_auth_error": "handle_auth_error"
         }
     )
     

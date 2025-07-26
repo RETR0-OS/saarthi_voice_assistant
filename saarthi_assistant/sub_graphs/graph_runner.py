@@ -1,3 +1,4 @@
+import traceback
 from typing import Dict, Any, Optional
 import uuid
 from .auth_graph import create_auth_graph, set_user_input, clear_user_input
@@ -8,6 +9,7 @@ class AuthGraphRunner:
     
     def __init__(self):
         self.auth_graph = create_auth_graph()
+        print(self.auth_graph.get_graph().draw_mermaid())
         self.current_thread_id = None
     
     def start_authentication(self) -> Dict[str, Any]:
@@ -32,6 +34,9 @@ class AuthGraphRunner:
                 "requires_pii": False  # Will be set by continue_with_registration
             }
         except Exception as e:
+
+            print(traceback.format_exc())
+
             return {
                 "success": False,
                 "auth_result": False,
