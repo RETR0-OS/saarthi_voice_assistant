@@ -8,6 +8,8 @@ from langchain_ollama.chat_models import ChatOllama
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
+from langchain_community.tools import DuckDuckGoSearchRun
+from datetime import datetime, timezone
 
 from ..utilities.IdentityManger import IdentityManagerSingleton
 
@@ -148,60 +150,70 @@ def fetch_user_pii(
 @tool
 def government_scheme_lookup(query: str) -> Dict[str, Any]:
     """
-    Look up government schemes based on user query.
+    Search the web for latest Indian government schemes and benefits.
     
     Args:
-        query: Search query for government schemes
+        query: Search query for government schemes (e.g., "housing schemes for low income", "farmer subsidies 2024")
     
     Returns:
-        Dict with scheme information
+        Dict with search results containing scheme information
     """
-    # Simple implementation for demo - can be enhanced with actual database
-    schemes = {
-        "housing": {
-            "name": "Pradhan Mantri Awas Yojana",
-            "description": "Affordable housing scheme for economically weaker sections",
-            "eligibility": "Annual income below 3 lakhs",
-            "documents": ["Aadhaar card", "Income certificate", "Bank account"],
-            "apply_at": "Your nearest government office or online portal"
-        },
-        "pension": {
-            "name": "National Social Assistance Programme",
-            "description": "Old age pension scheme for senior citizens",
-            "eligibility": "Age 60+ and below poverty line",
-            "documents": ["Aadhaar card", "Age proof", "BPL certificate"],
-            "apply_at": "Anganwadi center or Tehsil office"
-        },
-        "education": {
-            "name": "National Scholarship Portal",
-            "description": "Various scholarships for students",
-            "eligibility": "Based on merit and income criteria",
-            "documents": ["Mark sheets", "Income certificate", "Caste certificate (if applicable)"],
-            "apply_at": "scholarships.gov.in"
-        },
-        "farmer": {
-            "name": "PM Kisan Samman Nidhi",
-            "description": "₹6000 annual income support for farmers",
-            "eligibility": "Land-owning farmers",
-            "documents": ["Land documents", "Aadhaar card", "Bank account"],
-            "apply_at": "Agriculture office or pmkisan.gov.in"
-        }
-    }
-    
-    # Simple keyword matching
-    query_lower = query.lower()
-    for key, scheme in schemes.items():
-        if key in query_lower or scheme["name"].lower() in query_lower:
+    try:
+        # Initialize DuckDuckGo search
+        search = DuckDuckGoSearchRun()
+        
+        # Enhance query with Indian government context
+        enhanced_query = f"India government scheme {query} official latest 2024"
+        
+        # Perform the search
+        search_results = search.run(enhanced_query)
+        
+        if search_results:
             return {
                 "success": True,
-                "scheme": scheme
+                "results": search_results,
+                "query": query,
+                "note": "These are web search results. Please verify information from official government sources."
             }
+        else:
+            return {
+                "success": False,
+                "message": "No results found. Try refining your search query.",
+                "query": query
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Search failed: {str(e)}",
+            "query": query
+        }
+
+@tool
+def get_current_datetime() -> Dict[str, str]:
+    """
+    Get the current date and time in UTC format.
     
-    return {
-        "success": True,
-        "message": "No specific scheme found. Please contact your local government office for more information.",
-        "general_info": "Visit india.gov.in for comprehensive scheme information"
-    }
+    Returns:
+        Dict containing current UTC datetime in various formats
+    """
+    try:
+        now_utc = datetime.now(timezone.utc)
+        
+        return {
+            "success": True,
+            "iso_format": now_utc.isoformat(),
+            "readable_format": now_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "date": now_utc.strftime("%Y-%m-%d"),
+            "time": now_utc.strftime("%H:%M:%S"),
+            "day_of_week": now_utc.strftime("%A"),
+            "timestamp": int(now_utc.timestamp())
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get datetime: {str(e)}"
+        }
 
 # Node Functions
 def validate_session(state: AgentState) -> AgentState:
@@ -293,7 +305,7 @@ def llm_interaction(state: AgentState) -> AgentState:
     context_messages.extend(messages)
     
     # Bind tools to LLM
-    llm_with_tools = reasoning_qwen.bind_tools([fetch_user_pii, government_scheme_lookup])
+    llm_with_tools = reasoning_qwen.bind_tools([fetch_user_pii, government_scheme_lookup, get_current_datetime])
     
     try:
         # Get LLM response
