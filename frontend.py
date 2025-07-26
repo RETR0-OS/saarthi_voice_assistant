@@ -2,8 +2,6 @@ import streamlit as st
 import pyttsx3
 import sounddevice as sd
 import numpy as np
-import io
-import wave
 import time
 from saarthi_assistant.voice.main import transcribe_audio_numpy
 
