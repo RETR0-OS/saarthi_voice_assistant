@@ -13,166 +13,168 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- ENHANCED CSS for modern, appealing UI ---
+# --- ENHANCED CSS for warm, subtle UI ---
 st.markdown("""
 <style>
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap');
 
-/* Global styling with improved background */
+/* Global styling with warm, light background */
 .appview-container, .main, body, html {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #f7f1e8 0%, #ede4d3 50%, #f2e7dc 100%) !important;
     min-height: 100vh !important;
     font-family: 'Inter', sans-serif !important;
 }
 
-/* Main container with glass morphism effect */
+/* Main container with subtle glass effect */
 .main > div {
-    background: rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(20px) !important;
-    border-radius: 20px !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    margin: 20px !important;
-    padding: 30px !important;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+    background: rgba(255, 251, 247, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(210, 180, 160, 0.2) !important;
+    margin: 16px !important;
+    padding: 24px !important;
+    box-shadow: 0 8px 32px rgba(139, 115, 98, 0.08) !important;
 }
 
-/* Header styling with better typography */
+/* Header styling with warm tones */
 .main-header {
-    margin: 0 0 30px 0 !important;
+    margin: 0 0 20px 0 !important;
     padding: 20px 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 3rem !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
-    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1)) !important;
+    font-size: 2.8rem !important;
+    font-weight: 600 !important;
+    font-family: 'Poppins', sans-serif !important;
+    color: #5d4e37 !important;
+    text-shadow: 0 2px 8px rgba(93, 78, 55, 0.1) !important;
+    background: linear-gradient(135deg, rgba(245, 230, 210, 0.8), rgba(240, 220, 200, 0.6)) !important;
     border-radius: 20px !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(210, 180, 160, 0.3) !important;
 }
 
 .main-header .emoji {
-    font-size: 3.5rem !important;
-    margin-right: 15px !important;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)) !important;
+    font-size: 3rem !important;
+    margin-right: 12px !important;
+    filter: drop-shadow(0 2px 6px rgba(93, 78, 55, 0.15)) !important;
 }
 
 /* Chat container styling */
 .chat-wrapper {
-    min-height: 400px !important;
-    margin: 20px 0 !important;
-    background: rgba(255, 255, 255, 0.05) !important;
+    min-height: 200px !important;
+    margin: 16px 0 !important;
+    background: rgba(252, 248, 243, 0.7) !important;
     border-radius: 20px !important;
     padding: 20px !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(210, 180, 160, 0.2) !important;
+    box-shadow: inset 0 2px 8px rgba(139, 115, 98, 0.04) !important;
 }
 
-/* Question bubbles with improved styling */
+/* Question bubbles with warm styling */
 .question-bubbles-container {
-    margin-bottom: 25px !important;
-    padding: 15px 0 !important;
-    gap: 15px !important;
+    margin-bottom: 16px !important;
+    padding: 8px 0 !important;
+    gap: 12px !important;
     display: flex !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
 }
 
-/* Enhanced button styling */
+/* Enhanced button styling with warm colors */
 .stButton > button {
-    background: linear-gradient(135deg, #ff6b9d, #c44569) !important;
-    color: #ffffff !important;
+    background: linear-gradient(135deg, #d4a574, #c49363) !important;
+    color: #4a3728 !important;
     border: none !important;
-    border-radius: 25px !important;
-    padding: 12px 20px !important;
+    border-radius: 18px !important;
+    padding: 12px 18px !important;
     font-size: 14px !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
     font-family: 'Inter', sans-serif !important;
-    min-width: 140px !important;
-    height: 45px !important;
-    box-shadow: 0 8px 25px rgba(255, 107, 157, 0.3) !important;
+    min-width: 135px !important;
+    height: 44px !important;
+    box-shadow: 0 4px 16px rgba(196, 147, 99, 0.25) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     text-transform: none !important;
-    letter-spacing: 0.5px !important;
+    letter-spacing: 0.3px !important;
 }
 
 .stButton > button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 12px 35px rgba(255, 107, 157, 0.4) !important;
-    background: linear-gradient(135deg, #ff5e94, #b73e5e) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(196, 147, 99, 0.35) !important;
+    background: linear-gradient(135deg, #c49363, #b08752) !important;
 }
 
 .stButton > button:active {
     transform: translateY(0px) !important;
-    box-shadow: 0 5px 15px rgba(255, 107, 157, 0.3) !important;
+    box-shadow: 0 3px 12px rgba(196, 147, 99, 0.25) !important;
 }
 
-/* Messages container with better scrolling */
+/* Messages container with subtle styling */
 .messages-container {
-    max-height: 400px !important;
-    min-height: 150px !important;
+    max-height: 300px !important;
+    min-height: 100px !important;
     overflow-y: auto !important;
-    padding: 20px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-radius: 15px !important;
-    margin-bottom: 20px !important;
+    padding: 16px !important;
+    background: rgba(255, 253, 250, 0.6) !important;
+    border-radius: 16px !important;
+    margin-bottom: 16px !important;
     scroll-behavior: smooth !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(210, 180, 160, 0.15) !important;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar with warm tones */
 .messages-container::-webkit-scrollbar {
     width: 6px !important;
 }
 
 .messages-container::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(210, 180, 160, 0.1) !important;
     border-radius: 3px !important;
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3) !important;
+    background: rgba(196, 147, 99, 0.4) !important;
     border-radius: 3px !important;
 }
 
-/* Enhanced message bubbles */
+/* Enhanced message bubbles with warm colors */
 .user-message {
-    background: linear-gradient(135deg, #667eea, #764ba2) !important;
-    color: #ffffff !important;
-    padding: 16px 22px !important;
-    border-radius: 25px 25px 8px 25px !important;
-    margin: 15px 0 15px auto !important;
-    max-width: 75% !important;
+    background: linear-gradient(135deg, #e8d5b7, #dcc5a3) !important;
+    color: #3d2f1f !important;
+    padding: 16px 20px !important;
+    border-radius: 20px 20px 6px 20px !important;
+    margin: 12px 0 12px auto !important;
+    max-width: 78% !important;
     font-size: 15px !important;
     font-weight: 500 !important;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+    box-shadow: 0 3px 12px rgba(139, 115, 98, 0.15) !important;
     animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(180, 150, 120, 0.2) !important;
     line-height: 1.5 !important;
 }
 
 .bot-message {
-    background: linear-gradient(135deg, #ff6b9d, #c44569) !important;
-    color: #ffffff !important;
-    padding: 16px 22px !important;
-    border-radius: 25px 25px 25px 8px !important;
-    margin: 15px auto 15px 0 !important;
-    max-width: 75% !important;
+    background: linear-gradient(135deg, #f5e6d3, #ede0d0) !important;
+    color: #2d1f12 !important;
+    padding: 16px 20px !important;
+    border-radius: 20px 20px 20px 6px !important;
+    margin: 12px auto 12px 0 !important;
+    max-width: 78% !important;
     font-size: 15px !important;
     font-weight: 500 !important;
-    box-shadow: 0 8px 25px rgba(255, 107, 157, 0.3) !important;
+    box-shadow: 0 3px 12px rgba(139, 115, 98, 0.12) !important;
     animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(160, 130, 100, 0.15) !important;
     line-height: 1.5 !important;
 }
 
 /* Improved animations */
 @keyframes slideInRight {
     from {
-        transform: translateX(50px) scale(0.9);
+        transform: translateX(30px) scale(0.95);
         opacity: 0;
     }
     to {
@@ -183,7 +185,7 @@ st.markdown("""
 
 @keyframes slideInLeft {
     from {
-        transform: translateX(-50px) scale(0.9);
+        transform: translateX(-30px) scale(0.95);
         opacity: 0;
     }
     to {
@@ -194,12 +196,12 @@ st.markdown("""
 
 /* Input area styling */
 .input-area {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(248, 240, 230, 0.8) !important;
     border-radius: 20px !important;
-    padding: 20px !important;
-    margin-top: 20px !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    padding: 16px !important;
+    margin-top: 16px !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(210, 180, 160, 0.25) !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -207,63 +209,96 @@ st.markdown("""
 
 /* Mic button special styling */
 #mic_btn {
-    background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+    background: linear-gradient(135deg, #8b7355, #76634a) !important;
+    color: #ffffff !important;
     font-size: 16px !important;
-    padding: 15px 30px !important;
-    min-width: 160px !important;
-    height: 55px !important;
-    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4) !important;
+    padding: 16px 32px !important;
+    min-width: 180px !important;
+    height: 56px !important;
+    box-shadow: 0 6px 20px rgba(139, 115, 85, 0.3) !important;
+    font-weight: 600 !important;
 }
 
 #mic_btn:hover {
-    background: linear-gradient(135deg, #43a3f5, #00d9e7) !important;
-    box-shadow: 0 15px 40px rgba(79, 172, 254, 0.5) !important;
+    background: linear-gradient(135deg, #76634a, #68573f) !important;
+    box-shadow: 0 8px 24px rgba(139, 115, 85, 0.4) !important;
 }
 
 /* Streamlit info/success/error styling */
 .stAlert {
-    border-radius: 15px !important;
+    border-radius: 12px !important;
     border: none !important;
-    backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(8px) !important;
     font-weight: 500 !important;
+    margin: 8px 0 !important;
 }
 
 .stAlert > div {
-    background: rgba(255, 255, 255, 0.95) !important;
-    color: #333 !important;
-    border-radius: 15px !important;
-    padding: 15px 20px !important;
+    background: rgba(255, 251, 247, 0.95) !important;
+    color: #3d2f1f !important;
+    border-radius: 12px !important;
+    padding: 14px 18px !important;
+    border: 1px solid rgba(180, 150, 120, 0.2) !important;
+}
+
+.stAlert[data-baseweb="notification"][data-testid="stNotificationContentSuccess"] > div {
+    background: rgba(220, 240, 210, 0.95) !important;
+    color: #2d4a1f !important;
+    border: 1px solid rgba(120, 180, 100, 0.3) !important;
+}
+
+.stAlert[data-baseweb="notification"][data-testid="stNotificationContentError"] > div {
+    background: rgba(255, 235, 230, 0.95) !important;
+    color: #4a1f1f !important;
+    border: 1px solid rgba(200, 100, 100, 0.3) !important;
+}
+
+.stAlert[data-baseweb="notification"][data-testid="stNotificationContentWarning"] > div {
+    background: rgba(255, 245, 220, 0.95) !important;
+    color: #4a3a1f !important;
+    border: 1px solid rgba(200, 160, 80, 0.3) !important;
 }
 
 /* Footer styling */
 .footer {
     text-align: center !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    padding: 20px !important;
+    color: #6d5d47 !important;
+    padding: 16px !important;
     font-size: 14px !important;
     font-weight: 400 !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border-radius: 15px !important;
-    margin-top: 30px !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(245, 235, 220, 0.6) !important;
+    border-radius: 16px !important;
+    margin-top: 20px !important;
+    backdrop-filter: blur(6px) !important;
+    border: 1px solid rgba(180, 150, 120, 0.2) !important;
 }
 
 /* Spinner customization */
 .stSpinner > div {
-    border-color: #667eea transparent #667eea transparent !important;
+    border-color: #c49363 transparent #c49363 transparent !important;
 }
 
 /* Block container improvements */
 .block-container {
-    padding: 2rem 1rem !important;
-    max-width: 1000px !important;
+    padding: 1.5rem 1rem !important;
+    max-width: 980px !important;
 }
 
 /* Remove Streamlit branding */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
+
+/* Typography improvements */
+.stMarkdown {
+    color: #3d2f1f !important;
+}
+
+/* Enhanced focus states */
+.stButton > button:focus {
+    outline: 2px solid rgba(139, 115, 85, 0.5) !important;
+    outline-offset: 2px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -379,6 +414,7 @@ for i, q in enumerate(questions):
             st.session_state.messages.append({"type": "bot", "content": responses[i]})
             selected_bubble_reply = responses[i]
             st.session_state.pending_tts = responses[i]
+            st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -419,6 +455,7 @@ if mic_button:
                 error_msg = "No speech detected. Please speak louder and try again."
                 st.warning(error_msg)
                 st.session_state.pending_tts = error_msg
+                st.rerun()  # Force update for warning message
             else:
                 # Transcribe using voice service
                 user_input = transcribe_with_voice_service(audio_array, sample_rate)
@@ -429,19 +466,23 @@ if mic_button:
                     st.session_state.messages.append({"type": "bot", "content": standard_reply})
                     st.success(f"You said: {user_input}")
                     st.session_state.pending_tts = standard_reply
+                    st.rerun()  # Force update to show new messages
                 else:
                     error_msg = "Sorry, I couldn't understand that. Please try again."
                     st.error(error_msg)
                     st.session_state.pending_tts = error_msg
+                    st.rerun()  # Force update for error message
         else:
             error_msg = "Recording failed. Please check your microphone and try again."
             st.error(error_msg)
             st.session_state.pending_tts = error_msg
+            st.rerun()  # Force update for error message
             
     except Exception as e:
         error_msg = f"An error occurred: {str(e)}. Please try again."
         st.error(error_msg)
         st.session_state.pending_tts = error_msg
+        st.rerun()  # Force update for exception error
 
 # --- AFTER ALL UI, run TTS if pending ---
 if 'pending_tts' in st.session_state:
