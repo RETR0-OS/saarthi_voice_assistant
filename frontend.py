@@ -5,6 +5,14 @@ import numpy as np
 import time
 from saarthi_assistant.voice.main import transcribe_audio_numpy
 
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="Saarthi - Government Scheme Assistant",
+    page_icon="🧭",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
 # --- ENHANCED CSS for modern, appealing UI ---
 st.markdown("""
 <style>
