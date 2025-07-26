@@ -40,12 +40,7 @@ class FaceRecognitionUtility:
                 "embedding": embedding,
             }
         except ValueError as e:
-            print(f"Error in getting embedding: {e}")
-
-            cv2.imshow("Face Detection Error", image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-            
+            print(f"Error in getting embedding: {e}")            
             return {
                 "result": False,
                 "error": "Face not detected in the image."

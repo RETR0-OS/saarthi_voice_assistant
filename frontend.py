@@ -1,9 +1,22 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import streamlit as st
 import pyttsx3
 import sounddevice as sd
 import numpy as np
 import time
+import uuid
 from saarthi_assistant.voice.main import transcribe_audio_numpy
+from saarthi_assistant.sub_graphs.graph_runner import (
+    run_authentication, 
+    submit_registration_data, 
+    submit_pii_data, 
+    reset_authentication,
+    start_agent_conversation,
+    send_agent_message,
+    end_agent_conversation
+)
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -367,6 +380,128 @@ def speak(text):
 
 init_tts()
 
+# --- Authentication Form Functions ---
+def show_registration_form():
+    """Display registration form for new users"""
+    st.markdown("### 📝 New User Registration")
+    st.markdown("Please fill in your details to create an account:")
+    
+    with st.form("registration_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            first_name = st.text_input("First Name *", placeholder="Enter your first name")
+        with col2:
+            last_name = st.text_input("Last Name", placeholder="Enter your last name (optional)")
+        
+        dob = st.date_input("Date of Birth *")
+        phone = st.text_input("Phone Number *", placeholder="Enter your 10-digit phone number")
+        
+        submitted = st.form_submit_button("📷 Register & Capture Face", use_container_width=True)
+        
+        if submitted:
+            if not first_name or not phone:
+                st.error("Please fill in all required fields (marked with *)")
+                return
+            
+            if len(phone) != 10 or not phone.isdigit():
+                st.error("Please enter a valid 10-digit phone number")
+                return
+            
+            registration_data = {
+                "first_name": first_name,
+                "last_name": last_name if last_name else "",
+                "dob": str(dob),
+                "phone": phone
+            }
+            
+            with st.spinner("🤖 Processing registration..."):
+                result = submit_registration_data(registration_data)
+            
+            if result["success"]:
+                if result.get("requires_pii"):
+                    st.session_state.show_registration_form = False
+                    st.session_state.show_pii_form = True
+                    st.success("Registration successful! Now please provide your documents.")
+                    st.rerun()
+                elif result["auth_result"]:
+                    st.session_state.user_authenticated = True
+                    st.session_state.current_mode = "agent"
+                    st.session_state.show_registration_form = False
+                    st.success(result["notes"])
+                    st.rerun()
+                else:
+                    st.error(result["notes"])
+            else:
+                st.error(result["notes"])
+
+def show_pii_form():
+    """Display PII collection form"""
+    st.markdown("### 🏛️ Government Documents & Information")
+    st.markdown("Please provide your government documents for scheme applications. You can leave any field empty if you don't have that document.")
+    
+    with st.form("pii_form"):
+        st.markdown("#### Required Documents")
+        col1, col2 = st.columns(2)
+        with col1:
+            adhaar_number = st.text_input("Aadhaar Number", placeholder="12-digit Aadhaar number")
+        with col2:
+            pan_number = st.text_input("PAN Number", placeholder="10-character PAN number")
+        
+        with st.expander("📄 Optional Government IDs"):
+            col3, col4 = st.columns(2)
+            with col3:
+                voter_id = st.text_input("Voter ID", placeholder="Voter ID number")
+                driving_license = st.text_input("Driving License", placeholder="DL number")
+            with col4:
+                passport_number = st.text_input("Passport Number", placeholder="Passport number")
+        
+        with st.expander("🏦 Banking Information"):
+            col5, col6 = st.columns(2)
+            with col5:
+                bank_account_number = st.text_input("Bank Account Number", placeholder="Account number")
+            with col6:
+                ifsc_code = st.text_input("IFSC Code", placeholder="Bank IFSC code")
+        
+        with st.expander("📜 Certificates"):
+            income_certificate = st.text_input("Income Certificate Number", placeholder="Certificate number")
+            caste_certificate = st.text_input("Caste Certificate Number", placeholder="Certificate number")
+            domicile_certificate = st.text_input("Domicile Certificate Number", placeholder="Certificate number")
+            disability_certificate = st.text_input("Disability Certificate Number", placeholder="Certificate number")
+        
+        submitted = st.form_submit_button("🔐 Complete Registration", use_container_width=True)
+        
+        if submitted:
+            pii_data = {
+                "adhaar_number": adhaar_number,
+                "pan_number": pan_number,
+                "voter_id": voter_id,
+                "driving_license": driving_license,
+                "passport_number": passport_number,
+                "bank_account_number": bank_account_number,
+                "ifsc_code": ifsc_code,
+                "income_certificate_number": income_certificate,
+                "caste_certificate_number": caste_certificate,
+                "domicile_certificate_number": domicile_certificate,
+                "disability_certificate_number": disability_certificate
+            }
+            
+            with st.spinner("🔐 Encrypting and storing your information..."):
+                result = submit_pii_data(pii_data)
+            
+            if result["success"] and result["auth_result"]:
+                st.session_state.user_authenticated = True
+                st.session_state.current_mode = "agent"
+                st.session_state.show_pii_form = False
+                # Start agent conversation for new user
+                user_id = st.session_state.user_id or str(uuid.uuid4())
+                st.session_state.user_id = user_id
+                st.session_state.agent_thread_id = start_agent_conversation(user_id)
+                st.success("🎉 Registration complete! Welcome to Saarthi!")
+                st.balloons()
+                st.rerun()
+            else:
+                st.error(result["notes"])
+
 # --- Session state init ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -379,6 +514,26 @@ if "greeted" not in st.session_state:
 if "is_typing" not in st.session_state:
     st.session_state.is_typing = False
 
+# --- Authentication session state ---
+if "user_authenticated" not in st.session_state:
+    st.session_state.user_authenticated = False
+if "current_mode" not in st.session_state:
+    st.session_state.current_mode = "auth"  # Start with authentication
+if "auth_in_progress" not in st.session_state:
+    st.session_state.auth_in_progress = False
+if "show_registration_form" not in st.session_state:
+    st.session_state.show_registration_form = False
+if "show_pii_form" not in st.session_state:
+    st.session_state.show_pii_form = False
+if "auth_notes" not in st.session_state:
+    st.session_state.auth_notes = ""
+
+# --- Agent conversation state ---
+if "agent_thread_id" not in st.session_state:
+    st.session_state.agent_thread_id = None
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+
 # --- HEADER ---
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 st.markdown(
@@ -388,44 +543,124 @@ st.markdown(
     '</h1>', unsafe_allow_html=True,
 )
 
-# --- Question Bubbles ---
+# --- Main Content Area ---
 st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
-st.markdown('<div class="question-bubbles-container">', unsafe_allow_html=True)
 
-questions = [
-    "🏠 Housing Schemes",
-    "💰 Pension Info",
-    "🎓 Education Benefits",
-    "🌾 Farmer Schemes"
-]
-responses = [
-    "The Pradhan Mantri Awas Yojana (PM Housing Scheme) provides affordable housing for economically weaker sections. You need Aadhaar card and income certificate to apply. Visit your nearest government office for more details.",
-    "Old Age Pension Scheme provides monthly pension after 60 years of age. The National Social Assistance Programme covers various pension schemes. Apply at your nearest Anganwadi center or Tehsil office.",
-    "Various education schemes like scholarships for girls, mid-day meal program, and free textbooks are available. Contact your school or education department for specific scheme details.",
-    "PM Kisan Scheme provides ₹6000 annually to eligible farmers. You need land documents and Aadhaar card. Also, Crop Insurance Scheme protects against crop losses. Visit your nearest agriculture office."
-]
+# Check authentication status and show appropriate interface
+if not st.session_state.user_authenticated:
+    # --- AUTHENTICATION INTERFACE ---
+    st.markdown('<div class="question-bubbles-container">', unsafe_allow_html=True)
+    
+    # Show authentication status message
+    if st.session_state.auth_notes:
+        if "successful" in st.session_state.auth_notes.lower():
+            st.success(st.session_state.auth_notes)
+        else:
+            st.info(st.session_state.auth_notes)
+    
+    # Authentication button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔐 Authenticate with Face", key="auth_btn", help="Click to authenticate using face recognition", use_container_width=True):
+            st.session_state.auth_in_progress = True
+            with st.spinner("🤖 Initializing camera and authentication..."):
+                result = run_authentication()
+            
+            st.session_state.auth_in_progress = False
+            
+            if result["success"]:
+                if result["auth_result"]:
+                    # Successful authentication
+                    st.session_state.user_authenticated = True
+                    st.session_state.current_mode = "agent"
+                    st.session_state.auth_notes = result["notes"]
+                    # Start agent conversation
+                    user_id = result.get("user_id", str(uuid.uuid4()))
+                    st.session_state.user_id = user_id
+                    st.session_state.agent_thread_id = start_agent_conversation(user_id)
+                    st.success(result["notes"])
+                    st.rerun()
+                elif result.get("requires_registration"):
+                    # Need registration
+                    st.session_state.show_registration_form = True
+                    st.session_state.auth_notes = result["notes"]
+                    st.info("Face not recognized. Please register as a new user.")
+                    st.rerun()
+                else:
+                    # Authentication failed
+                    st.error(result["notes"])
+                    st.session_state.auth_notes = result["notes"]
+            else:
+                st.error(result["notes"])
+                st.session_state.auth_notes = result["notes"]
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Show forms if needed
+    if st.session_state.show_registration_form:
+        show_registration_form()
+    elif st.session_state.show_pii_form:
+        show_pii_form()
+    
+    # Show informational message
+    if not st.session_state.show_registration_form and not st.session_state.show_pii_form:
+        st.markdown('<div style="text-align: center; margin: 20px 0; color: #6d5d47;">', unsafe_allow_html=True)
+        st.markdown("👋 **Welcome to Saarthi!**")
+        st.markdown("Please authenticate with your face to access government scheme assistance.")
+        st.markdown("If you're a new user, you'll be guided through a quick registration process.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-selected_bubble_reply = None
-cols = st.columns(len(questions))
-for i, q in enumerate(questions):
-    with cols[i]:
-        if st.button(q, key=f"bubble_{i}", help="Click to ask this question and hear the answer aloud"):
-            st.session_state.messages.append({"type": "user", "content": q})
-            st.session_state.messages.append({"type": "bot", "content": responses[i]})
-            selected_bubble_reply = responses[i]
-            st.session_state.pending_tts = responses[i]
-            st.rerun()
+else:
+    # --- AGENT INTERFACE (existing functionality) ---
+    st.markdown('<div class="question-bubbles-container">', unsafe_allow_html=True)
+    
+    questions = [
+        "🏠 Housing Schemes",
+        "💰 Pension Info",
+        "🎓 Education Benefits",
+        "🌾 Farmer Schemes"
+    ]
+    responses = [
+        "The Pradhan Mantri Awas Yojana (PM Housing Scheme) provides affordable housing for economically weaker sections. You need Aadhaar card and income certificate to apply. Visit your nearest government office for more details.",
+        "Old Age Pension Scheme provides monthly pension after 60 years of age. The National Social Assistance Programme covers various pension schemes. Apply at your nearest Anganwadi center or Tehsil office.",
+        "Various education schemes like scholarships for girls, mid-day meal program, and free textbooks are available. Contact your school or education department for specific scheme details.",
+        "PM Kisan Scheme provides ₹6000 annually to eligible farmers. You need land documents and Aadhaar card. Also, Crop Insurance Scheme protects against crop losses. Visit your nearest agriculture office."
+    ]
+    
+    selected_bubble_reply = None
+    cols = st.columns(len(questions))
+    for i, q in enumerate(questions):
+        with cols[i]:
+            if st.button(q, key=f"bubble_{i}", help="Click to ask this question and hear the answer aloud"):
+                # Send question to agent graph
+                with st.spinner("🤖 Processing your query..."):
+                    result = send_agent_message(q, st.session_state.agent_thread_id)
+                
+                if result["success"]:
+                    st.session_state.messages.append({"type": "user", "content": q})
+                    st.session_state.messages.append({"type": "bot", "content": result["response"]})
+                    st.session_state.pending_tts = result["response"]
+                    
+                    # Check if session is still valid
+                    if not result.get("session_valid", True):
+                        st.warning("Session expired. Please re-authenticate.")
+                        st.session_state.user_authenticated = False
+                        st.rerun()
+                else:
+                    st.error(result["response"])
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
-
-# --- Chat Messages ---
-st.markdown('<div class="messages-container" id="chat-messages">', unsafe_allow_html=True)
-for message in st.session_state.messages:
-    if message["type"] == "user":
-        st.markdown(f'<div class="user-message">👤 {message["content"]}</div>', unsafe_allow_html=True)
-    elif message["type"] == "bot":
-        st.markdown(f'<div class="bot-message">🤖 {message["content"]}</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+# --- Chat Messages (only for authenticated users) ---
+if st.session_state.user_authenticated:
+    st.markdown('<div class="messages-container" id="chat-messages">', unsafe_allow_html=True)
+    for message in st.session_state.messages:
+        if message["type"] == "user":
+            st.markdown(f'<div class="user-message">👤 {message["content"]}</div>', unsafe_allow_html=True)
+        elif message["type"] == "bot":
+            st.markdown(f'<div class="bot-message">🤖 {message["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # --- Auto scroll chat ---
 st.markdown("""
@@ -437,10 +672,30 @@ setTimeout(function() {
 </script>
 """, unsafe_allow_html=True)
 
-# --- Input area with mic button ---
-st.markdown('<div class="input-area">', unsafe_allow_html=True)
-mic_button = st.button("🎙 Speak to Saarthi", key="mic_btn", help="Click to speak your question")
-st.markdown('</div>', unsafe_allow_html=True)
+# --- Input area with mic button (only for authenticated users) ---
+if st.session_state.user_authenticated:
+    st.markdown('<div class="input-area">', unsafe_allow_html=True)
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        mic_button = st.button("🎙 Speak to Saarthi", key="mic_btn", help="Click to speak your question", use_container_width=True)
+    with col2:
+        if st.button("🚪 Logout", key="logout_btn", help="Logout and clear session", use_container_width=True):
+            # Reset session state
+            st.session_state.user_authenticated = False
+            st.session_state.current_mode = "auth"
+            st.session_state.auth_notes = ""
+            st.session_state.show_registration_form = False
+            st.session_state.show_pii_form = False
+            st.session_state.messages = []
+            st.session_state.agent_thread_id = None
+            st.session_state.user_id = None
+            end_agent_conversation()
+            reset_authentication()
+            st.success("Logged out successfully!")
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    mic_button = False  # Disable mic functionality when not authenticated
 
 if mic_button:
     try:
@@ -461,11 +716,25 @@ if mic_button:
                 user_input = transcribe_with_voice_service(audio_array, sample_rate)
                 
                 if user_input and user_input.strip():
-                    st.session_state.messages.append({"type": "user", "content": user_input})
-                    standard_reply = "Thank you for your question. I am processing your request and will get back to you shortly."
-                    st.session_state.messages.append({"type": "bot", "content": standard_reply})
-                    st.success(f"You said: {user_input}")
-                    st.session_state.pending_tts = standard_reply
+                    # Send transcribed text to agent graph
+                    with st.spinner("🤖 Processing your query..."):
+                        result = send_agent_message(user_input, st.session_state.agent_thread_id)
+                    
+                    if result["success"]:
+                        st.session_state.messages.append({"type": "user", "content": user_input})
+                        st.session_state.messages.append({"type": "bot", "content": result["response"]})
+                        st.success(f"You said: {user_input}")
+                        st.session_state.pending_tts = result["response"]
+                        
+                        # Check if session is still valid
+                        if not result.get("session_valid", True):
+                            st.warning("Session expired. Please re-authenticate.")
+                            st.session_state.user_authenticated = False
+                            st.rerun()
+                    else:
+                        error_msg = result["response"]
+                        st.error(error_msg)
+                        st.session_state.pending_tts = error_msg
                     st.rerun()  # Force update to show new messages
                 else:
                     error_msg = "Sorry, I couldn't understand that. Please try again."
