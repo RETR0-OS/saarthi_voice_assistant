@@ -23,13 +23,13 @@ class FaceRecognitionBackends(Enum):
 class FaceRecognitionUtility:
     model = FaceRecognitionModels.facenet.value # Facenet for accuracy and medium inference speed
     backend = FaceRecognitionBackends.yolo_v11_n.value #nano model for fast face detection
-    validation_distance = 0.25 # Low cosine similarity threshold for face validation
+    validation_distance = 0.4 # Low cosine similarity threshold for face validation
 
     @classmethod
     def get_embedding(cls, image: np.ndarray) -> Dict[str, Any]:
 
         try:
-            embedding = DeepFace.represent(image, model_name=cls.model, anti_spoofing=True, align=False)
+            embedding = DeepFace.represent(image, model_name=cls.model, align=True)
             if not embedding[0]["face_confidence"] >= 0.7:
                 return {
                     "result": False,
@@ -42,6 +42,10 @@ class FaceRecognitionUtility:
         except ValueError as e:
             print(f"Error in getting embedding: {e}")
 
+            cv2.imshow("Face Detection Error", image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+            
             return {
                 "result": False,
                 "error": "Face not detected in the image."
@@ -101,5 +105,5 @@ class CameraManager:
         return frames
 
     def release(self):
-        if self.capture.isOpened():
+        if self.capture and self.capture.isOpened():
             self.capture.release()

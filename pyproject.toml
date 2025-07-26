@@ -23,4 +23,5 @@ dependencies = [
     "keyring>=25.6.0",
     "langgraph>=0.5.4",
     "grandalf>=0.8",
+    "pyaudio>=0.2.14",
 ]

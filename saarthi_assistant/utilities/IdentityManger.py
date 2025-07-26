@@ -1,5 +1,5 @@
 import threading
-from identity_wallet.identity_manager.identity_manager import IdentityManager
+from ..identity_wallet.identity_manager.identity_manager import IdentityManager
 
 class IdentityManagerSingleton:
     """

@@ -48,7 +48,7 @@ class IdentityManager:
         """Capture frames from camera"""
         return self.camera_manager.get_frames()
 
-    def add_user(self, first_name: str, dob: str, phone: int, last_name:str = None) -> Dict[str, Any]:
+    def add_user(self, first_name: str, dob: str, phone: int, last_name:Optional[str] = None) -> Dict[str, Any]:
         """
         Enrollment process: Capture face, generate keys, and store securely
         """
@@ -192,7 +192,7 @@ class IdentityManager:
 
         return {
             "user_id": self.current_user._id,
-            "name": self.current_user.name,
+            "name": self.current_user.first_name + (" " + self.current_user.last_name if self.current_user.last_name else ""),
             "is_authenticated": True
         }
 
