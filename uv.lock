@@ -483,6 +483,20 @@ wheels = [
 ]
 
 [[package]]
+name = "ddgs"
+version = "9.4.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "lxml" },
+    { name = "primp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a7/36/23cf38e968260fdcc0068306136ac4ba5a9ceb0b4cde2ce7d70b8b90091b/ddgs-9.4.3.tar.gz", hash = "sha256:476646042ae8002c06e52c5be578386efbe8af54d7e86c3eb063fa6110eb5aa8", size = 31227, upload-time = "2025-07-24T01:26:44.856Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b1/56/4805b11d2d8ba44bf381bb0971fe14dc0d081e81702103fb87dcd211bc88/ddgs-9.4.3-py3-none-any.whl", hash = "sha256:bb929f5d891745f5113a3bba9a3b8ec2713ff67afb82d97dcffe4695f61c9cc9", size = 34976, upload-time = "2025-07-24T01:26:43.571Z" },
+]
+
+[[package]]
 name = "decorator"
 version = "5.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -4889,6 +4903,7 @@ dependencies = [
     { name = "accelerate" },
     { name = "crewai" },
     { name = "crewai-tools" },
+    { name = "ddgs" },
     { name = "dotenv" },
     { name = "duckduckgo-search" },
     { name = "grandalf" },
@@ -4914,6 +4929,7 @@ requires-dist = [
     { name = "accelerate", specifier = ">=1.9.0" },
     { name = "crewai", specifier = ">=0.150.0" },
     { name = "crewai-tools", specifier = ">=0.0.1" },
+    { name = "ddgs", specifier = ">=9.4.3" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "duckduckgo-search", specifier = ">=8.1.1" },
     { name = "grandalf", specifier = ">=0.8" },

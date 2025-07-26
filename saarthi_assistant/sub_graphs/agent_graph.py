@@ -10,6 +10,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
 from langchain_community.tools import DuckDuckGoSearchRun
 from datetime import datetime, timezone
+from langgraph.prebuilt import tools_condition
 
 from ..utilities.IdentityManger import IdentityManagerSingleton
 
@@ -38,7 +39,8 @@ reasoning_qwen = ChatOllama(
     reasoning=True,
     top_p=0.4,
     top_k=10,
-    repeat_penalty=1.5
+    repeat_penalty=1.5,
+    base_url="http://localhost:11434/",
 )
 
 qwen_fast = ChatOllama(
@@ -48,7 +50,8 @@ qwen_fast = ChatOllama(
     top_p=0.4,
     top_k=10,
     num_predict=1024,
-    repeat_penalty=1.5
+    repeat_penalty=1.5,
+    base_url="http://localhost:11434/",
 )
 
 # Checkpointer for agent sessions
@@ -249,6 +252,8 @@ You help users discover and apply for government schemes. You have access to:
 1. fetch_user_pii - to retrieve user's stored documents like Aadhaar, PAN, etc.
 2. government_scheme_lookup - to search for relevant government schemes
 
+Call the tools when the user asks a query regarding their PII, government schemes, benefits or any related information.
+The tools can be called by returning a tool_calls object in your response.
 Be helpful, clear, and concise. When users ask about schemes, provide specific information about eligibility, required documents, and application process.
 Always communicate in simple, easy-to-understand language.""")
         messages = [system_msg] + messages
@@ -312,6 +317,10 @@ def llm_interaction(state: AgentState) -> AgentState:
         response = llm_with_tools.invoke(context_messages)
         
         # Check if it's a valid response
+
+        #Debug prints
+        print(f"LLM Response: {response}")
+
         if response.content:
             print(f"Assistant: {response.content}")
             return {
@@ -347,13 +356,6 @@ def route_session(state: AgentState) -> str:
     else:
         return "handle_error"
 
-def route_llm_response(state: AgentState) -> str:
-    """Check if LLM made tool calls"""
-    messages = state.get("messages", [])
-    if messages and hasattr(messages[-1], "tool_calls") and messages[-1].tool_calls:
-        return "tools"
-    return END
-
 def route_summarize(state: AgentState) -> str:
     """Check if conversation needs summarization"""
     messages = state.get("messages", [])
@@ -372,19 +374,34 @@ def create_agent_graph():
     
     # Add nodes
     builder.add_node("validate_session", validate_session)
+    builder.add_node("is_session_valid", lambda state: state)
     builder.add_node("process_query", process_query)
+    builder.add_node("should_summarize", lambda state: state)
     builder.add_node("summarize_conversation", summarize_conversation)
     builder.add_node("llm_interaction", llm_interaction)
-    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup]))
+    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup, get_current_datetime]))
     builder.add_node("handle_error", handle_error)
     
     # Add edges
     builder.add_edge(START, "validate_session")
-    builder.add_conditional_edges("validate_session", route_session)
-    builder.add_edge("process_query", "summarize_conversation")
-    builder.add_conditional_edges("summarize_conversation", route_summarize)
+    builder.add_edge("validate_session", "is_session_valid")
+    builder.add_conditional_edges(
+        "is_session_valid", 
+        route_session,
+        {
+            "process_query": "process_query",
+            "handle_error": "handle_error"
+        })
+    builder.add_edge("process_query", "should_summarize")
+    builder.add_conditional_edges(
+        "should_summarize", 
+        route_summarize,
+        {
+            "llm_interaction": "llm_interaction",
+            "summarize_conversation": "summarize_conversation"
+        })
     builder.add_edge("summarize_conversation", "llm_interaction")
-    builder.add_conditional_edges("llm_interaction", route_llm_response)
+    builder.add_conditional_edges("llm_interaction", tools_condition)
     builder.add_edge("tools", "llm_interaction")
     builder.add_edge("handle_error", END)
     
