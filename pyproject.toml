@@ -28,4 +28,5 @@ dependencies = [
     "langchain-ollama>=0.3.6",
     "pycryptodome>=3.23.0",
     "ddgs>=9.4.3",
+    "selenium>=4.34.2",
 ]

@@ -10,7 +10,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_tavily import TavilySearch
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from langgraph.prebuilt import tools_condition
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -273,22 +273,22 @@ def generic_web_search(query: str) -> Dict[str, Any]:
 @tool
 def get_current_datetime() -> Dict[str, Any]:
     """
-    Fetch the latest date and time in UTC format.
+    Fetch the latest date and time in IST format.
     
     Returns:
-        Dict containing current UTC datetime in various formats
+        Dict containing current IST datetime in various formats
     """
     try:
-        now_utc = datetime.now(timezone.utc)
+        now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
         
         return {
             "success": True,
-            "iso_format": now_utc.isoformat(),
-            "readable_format": now_utc.strftime("%Y-%m-%d %H:%M:%S UTC"),
-            "date": now_utc.strftime("%Y-%m-%d"),
-            "time": now_utc.strftime("%H:%M:%S"),
-            "day_of_week": now_utc.strftime("%A"),
-            "timestamp": int(now_utc.timestamp())
+            "iso_format": now_ist.isoformat(),
+            "readable_format": now_ist.strftime("%Y-%m-%d %H:%M:%S IST"),
+            "date": now_ist.strftime("%Y-%m-%d"),
+            "time": now_ist.strftime("%H:%M:%S"),
+            "day_of_week": now_ist.strftime("%A"),
+            "timestamp": int(now_ist.timestamp())
         }
     except Exception as e:
         return {
