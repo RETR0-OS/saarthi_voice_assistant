@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional
 import uuid
 from .auth_graph import create_auth_graph, set_user_input, clear_user_input
 from .agent_graph import create_agent_graph
+from ..utilities.IdentityManger import reset_identity_manager
 
 class AuthGraphRunner:
     """Simple interface for running the authentication graph from frontend"""
@@ -183,7 +184,8 @@ def submit_pii_data(pii_data: Dict[str, str]) -> Dict[str, Any]:
 
 def reset_authentication():
     """Reset authentication session"""
-    auth_runner.reset_session() 
+    auth_runner.reset_session()
+    reset_identity_manager() 
 
 def start_agent_conversation(user_id: str) -> str:
     """Start a new agent conversation - used by frontend"""

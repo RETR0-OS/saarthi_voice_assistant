@@ -680,6 +680,11 @@ if st.session_state.user_authenticated:
         mic_button = st.button("🎙 Speak to Saarthi", key="mic_btn", help="Click to speak your question", use_container_width=True)
     with col2:
         if st.button("🚪 Logout", key="logout_btn", help="Logout and clear session", use_container_width=True):
+            # Clear the identity manager instance from session state
+            if 'identity_manager_instance' in st.session_state:
+                st.session_state.identity_manager_instance.logout()
+                del st.session_state.identity_manager_instance
+            
             # Reset session state
             st.session_state.user_authenticated = False
             st.session_state.current_mode = "auth"

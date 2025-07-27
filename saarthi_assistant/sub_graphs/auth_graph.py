@@ -6,7 +6,7 @@ import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
 
-from ..utilities.IdentityManger import IdentityManagerSingleton
+from ..utilities.IdentityManger import get_identity_manager
 
 # State Schema
 class AuthState(TypedDict):
@@ -57,7 +57,7 @@ def attempt_login(state: AuthState) -> AuthState:
     """Attempt to login using IdentityManager"""
     try:
         print("Attempting to login...")
-        identity_manager = IdentityManagerSingleton.get_instance()
+        identity_manager = get_identity_manager()
         result = identity_manager.login()
 
         print(f"Login result: {result}")
@@ -125,7 +125,7 @@ def register_user(state: AuthState) -> AuthState:
                 "error_message": "Missing registration data"
             }
         
-        identity_manager = IdentityManagerSingleton.get_instance()
+        identity_manager = get_identity_manager()
         result = identity_manager.add_user(
             first_name=registration_data["first_name"],
             last_name=registration_data.get("last_name"),
@@ -169,7 +169,7 @@ def collect_pii(state: AuthState) -> AuthState:
                 "notes": "Waiting for PII data from user"
             }
         
-        identity_manager = IdentityManagerSingleton.get_instance()
+        identity_manager = get_identity_manager()
         
         # Encrypt and store each PII field
         for data_type, value in pii_data.items():

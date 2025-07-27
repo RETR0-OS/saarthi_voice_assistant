@@ -1,4 +1,5 @@
 import threading
+import streamlit as st
 from ..identity_wallet.identity_manager.identity_manager import IdentityManager
 
 class IdentityManagerSingleton:
@@ -55,3 +56,23 @@ class IdentityManagerSingleton:
                 cls._instance._identity_manager.logout()
             cls._instance = None
             cls._identity_manager = None
+
+def get_identity_manager():
+    """
+    Get IdentityManager instance from Streamlit session state.
+    This ensures the instance and its keys persist across Streamlit interactions.
+    """
+    if 'identity_manager_instance' not in st.session_state:
+        st.session_state.identity_manager_instance = IdentityManager(camera_id=1)
+    return st.session_state.identity_manager_instance
+
+def reset_identity_manager():
+    """
+    Reset the IdentityManager instance in session state.
+    Call this during logout to properly clean up.
+    """
+    if 'identity_manager_instance' in st.session_state:
+        # Logout and cleanup the current instance
+        st.session_state.identity_manager_instance.logout()
+        # Remove from session state
+        del st.session_state.identity_manager_instance

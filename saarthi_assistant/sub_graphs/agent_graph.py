@@ -12,7 +12,7 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from datetime import datetime, timezone
 from langgraph.prebuilt import tools_condition
 
-from ..utilities.IdentityManger import IdentityManagerSingleton
+from ..utilities.IdentityManger import get_identity_manager
 
 # State Schema
 class AgentState(TypedDict):
@@ -86,7 +86,7 @@ def fetch_user_pii(
             "error": "User session not valid"
         }
     
-    identity_manager = IdentityManagerSingleton.get_instance()
+    identity_manager = get_identity_manager()
     
     # Verify user is still authenticated
     if not identity_manager.verify_user():
@@ -221,7 +221,7 @@ def get_current_datetime() -> Dict[str, str]:
 # Node Functions
 def validate_session(state: AgentState) -> AgentState:
     """Validate that the user session is still active"""
-    identity_manager = IdentityManagerSingleton.get_instance()
+    identity_manager = get_identity_manager()
     
     if identity_manager.verify_user():
         return {
