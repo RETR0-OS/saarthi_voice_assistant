@@ -8,7 +8,7 @@ from langchain_ollama.chat_models import ChatOllama
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
-# from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_tavily import TavilySearch
 from datetime import datetime, timezone
 from langgraph.prebuilt import tools_condition

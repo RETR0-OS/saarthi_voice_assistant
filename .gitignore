@@ -8,3 +8,5 @@ saarthi_voice_assistant.code-workspace
 identity_wallet/abcd.py
 *.db
 *.db.*
+*.db-shm
+*.db-wal

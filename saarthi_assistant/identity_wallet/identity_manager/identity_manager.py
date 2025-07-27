@@ -12,6 +12,10 @@ from ..models.User import User
 from ..identity_manager.face_recognition import FaceRecognitionUtility, CameraManager
 from ..utilities.crypto_manager import CryptoManager
 from ..utilities.key_manager import SecureKeyManager
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import traceback
 
@@ -19,7 +23,7 @@ import traceback
 class IdentityManager:
     """Main identity management class implementing the face-gated identity vault"""
 
-    def __init__(self, camera_id: int = 0):
+    def __init__(self, camera_id: int = int(os.getenv("CAMERA_ID", 0))):
         db_path = os.path.join(appdirs.user_data_dir("Saarthi", "AlgoHackers"), "identity_vault.db")
         self.is_logged_in = False
         self.current_user = None

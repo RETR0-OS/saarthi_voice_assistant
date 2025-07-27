@@ -1,6 +1,10 @@
 import threading
 import streamlit as st
 from ..identity_wallet.identity_manager.identity_manager import IdentityManager
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class IdentityManagerSingleton:
     """
@@ -23,7 +27,7 @@ class IdentityManagerSingleton:
         if self._identity_manager is None:
             with self._lock:
                 if self._identity_manager is None:
-                    self._identity_manager = IdentityManager(camera_id=1)
+                    self._identity_manager = IdentityManager(camera_id=int(os.getenv("CAMERA_ID", 0)))
 
     def __getattr__(self, name):
         """Delegate all attribute access to the wrapped IdentityManager instance"""
