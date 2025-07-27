@@ -7,3 +7,4 @@ __pycache__
 saarthi_voice_assistant.code-workspace
 identity_wallet/abcd.py
 *.db
+*.db.*
