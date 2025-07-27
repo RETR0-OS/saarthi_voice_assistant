@@ -18,6 +18,7 @@ from saarthi_assistant.sub_graphs.graph_runner import (
     end_agent_conversation
 )
 
+
 # --- PAGE CONFIG ---
 st.set_page_config(
     page_title="Saarthi - Government Scheme Assistant",
@@ -348,7 +349,7 @@ def transcribe_with_voice_service(audio_array, sample_rate=16000):
             
             if result["success"]:
                 st.success(f"✅ Transcription completed in {processing_time:.2f}s")
-                return result["text"]
+                return result  # Return full result object with both text and hindi_text
             else:
                 st.error(f"❌ Transcription failed: {result['error']}")
                 return None
@@ -620,11 +621,13 @@ else:
         "🎓 Education Benefits",
         "🌾 Farmer Schemes"
     ]
-    responses = [
-        "The Pradhan Mantri Awas Yojana (PM Housing Scheme) provides affordable housing for economically weaker sections. You need Aadhaar card and income certificate to apply. Visit your nearest government office for more details.",
-        "Old Age Pension Scheme provides monthly pension after 60 years of age. The National Social Assistance Programme covers various pension schemes. Apply at your nearest Anganwadi center or Tehsil office.",
-        "Various education schemes like scholarships for girls, mid-day meal program, and free textbooks are available. Contact your school or education department for specific scheme details.",
-        "PM Kisan Scheme provides ₹6000 annually to eligible farmers. You need land documents and Aadhaar card. Also, Crop Insurance Scheme protects against crop losses. Visit your nearest agriculture office."
+    
+    # Hindi versions for display
+    questions_hindi = [
+        "🏠 आवास योजनाएं",
+        "💰 पेंशन की जानकारी",
+        "🎓 शिक्षा लाभ",
+        "🌾 किसान योजनाएं"
     ]
     
     selected_bubble_reply = None
@@ -632,13 +635,20 @@ else:
     for i, q in enumerate(questions):
         with cols[i]:
             if st.button(q, key=f"bubble_{i}", help="Click to ask this question and hear the answer aloud"):
-                # Send question to agent graph
+                # Add user message immediately (in Hindi)
+                st.session_state.messages.append({"type": "user", "content": questions_hindi[i]})
+                # Add processing message in Hindi
+                processing_msg = "मैं आपके प्रश्न की जांच कर रहा हूं। कृपया प्रतीक्षा करें।"
+                st.session_state.messages.append({"type": "bot", "content": processing_msg})
+                st.rerun()  # Show messages immediately
+                
+                # Send English question to agent graph
                 with st.spinner("🤖 Processing your query..."):
                     result = send_agent_message(q, st.session_state.agent_thread_id)
                 
                 if result["success"]:
-                    st.session_state.messages.append({"type": "user", "content": q})
-                    st.session_state.messages.append({"type": "bot", "content": result["response"]})
+                    # Replace processing message with actual response
+                    st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
                     st.session_state.pending_tts = result["response"]
                     
                     # Check if session is still valid
@@ -647,7 +657,8 @@ else:
                         st.session_state.user_authenticated = False
                         st.rerun()
                 else:
-                    st.error(result["response"])
+                    # Replace processing message with error
+                    st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
                 st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -718,17 +729,27 @@ if mic_button:
                 st.rerun()  # Force update for warning message
             else:
                 # Transcribe using voice service
-                user_input = transcribe_with_voice_service(audio_array, sample_rate)
+                transcription_result = transcribe_with_voice_service(audio_array, sample_rate)
                 
-                if user_input and user_input.strip():
-                    # Send transcribed text to agent graph
+                if transcription_result and transcription_result.get("text", "").strip():
+                    user_input_english = transcription_result["text"].strip()
+                    user_input_hindi = transcription_result.get("hindi_text", user_input_english).strip()
+                    
+                    # Add user message immediately (in Hindi)
+                    st.session_state.messages.append({"type": "user", "content": user_input_hindi})
+                    # Add processing message in Hindi
+                    processing_msg = "मैं आपके प्रश्न की जांच कर रहा हूं। कृपया प्रतीक्षा करें।"
+                    st.session_state.messages.append({"type": "bot", "content": processing_msg})
+                    st.success(f"You said (English): {user_input_english} | आपने कहा (Hindi): {user_input_hindi}")
+                    st.rerun()  # Show messages immediately
+                    
+                    # Send English transcribed text to agent graph
                     with st.spinner("🤖 Processing your query..."):
-                        result = send_agent_message(user_input, st.session_state.agent_thread_id)
+                        result = send_agent_message(user_input_english, st.session_state.agent_thread_id)
                     
                     if result["success"]:
-                        st.session_state.messages.append({"type": "user", "content": user_input})
-                        st.session_state.messages.append({"type": "bot", "content": result["response"]})
-                        st.success(f"You said: {user_input}")
+                        # Replace processing message with actual response
+                        st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
                         st.session_state.pending_tts = result["response"]
                         
                         # Check if session is still valid
@@ -737,8 +758,9 @@ if mic_button:
                             st.session_state.user_authenticated = False
                             st.rerun()
                     else:
+                        # Replace processing message with error
+                        st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
                         error_msg = result["response"]
-                        st.error(error_msg)
                         st.session_state.pending_tts = error_msg
                     st.rerun()  # Force update to show new messages
                 else:
