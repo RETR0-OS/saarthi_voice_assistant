@@ -98,6 +98,16 @@ class DatabaseManager:
                 'face_embedding': row[5],
                 'encrypted_kek': row[6]
             } for row in rows]
+        
+    def get_all_data_types(self, user_id: str) -> List[str]:
+        """Get all available data types for the given user"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT data_type FROM user_data WHERE user_id = ?
+            ''', (user_id,))
+            rows = cursor.fetchall()
+            return list(rows)
 
     def store_encrypted_data(self, user_id: str, data_type: str, encrypted_data: bytes, encrypted_dek: bytes):
         """Store encrypted PII data with encrypted DEK"""

@@ -8,12 +8,13 @@ from langchain_ollama.chat_models import ChatOllama
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
-# from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_tavily import TavilySearch
 from datetime import datetime, timezone
 from langgraph.prebuilt import tools_condition
 
 from ..utilities.IdentityManger import get_identity_manager
+from .form_filler_graph import fill_web_form
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import os
 
@@ -288,7 +289,7 @@ def get_current_datetime() -> Dict[str, Any]:
         }
 
 # Bind tools to LLM
-llm_with_tools = reasoning_qwen.bind_tools([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search])
+llm_with_tools = reasoning_qwen.bind_tools([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search, fill_web_form])
 
 # Node Functions
 def validate_session(state: AgentState) -> AgentState:
@@ -441,7 +442,7 @@ def create_agent_graph():
     builder.add_node("should_summarize", lambda state: state)
     builder.add_node("summarize_conversation", summarize_conversation)
     builder.add_node("llm_interaction", llm_interaction)
-    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search],))
+    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search, fill_web_form],))
     builder.add_node("handle_error", handle_error)
     
     # Add edges
