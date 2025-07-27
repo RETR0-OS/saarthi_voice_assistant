@@ -13,6 +13,17 @@ from datetime import datetime, timezone
 from langgraph.prebuilt import tools_condition
 
 from ..utilities.IdentityManger import get_identity_manager
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+import os
+
+# Initialize Jinja2 environment for system message template
+
+template_dir = os.path.join(os.path.dirname(__file__), "..", "prompt_store")
+env = Environment(
+    loader=FileSystemLoader(template_dir),
+    autoescape=select_autoescape()
+)
+manager_system_template = env.get_template("manager_system.prompt.jinja2")
 
 # State Schema
 class AgentState(TypedDict):
@@ -153,7 +164,17 @@ def fetch_user_pii(
 @tool
 def government_scheme_lookup(query: str) -> Dict[str, Any]:
     """
-    Search the web for latest Indian government schemes and benefits.
+    Search the internet for latest Indian government schemes and benefits.
+    Use this tool to lookup any information related to givernment schemes, benefits, or related queries
+    launched by the Indian Government.
+    
+    Query Enhancement Tips:
+        -> A and B: Results about topics A and B
+        -> "A and B": Results for the exact term "A and B"
+        -> A -B: Fewer topic B in results
+        -> A +B: More topic B in results
+        -> A site:example.com: Results about A from example.com
+        -> A -site:example.com: Results about A excluding example.com
     
     Args:
         query: Search query for government schemes (e.g., "housing schemes for low income", "farmer subsidies 2024")
@@ -193,9 +214,54 @@ def government_scheme_lookup(query: str) -> Dict[str, Any]:
         }
 
 @tool
-def get_current_datetime() -> Dict[str, str]:
+def generic_web_search(query: str) -> Dict[str, Any]:
     """
-    Get the current date and time in UTC format.
+    Use this tool to perform a generic web search for any query.
+    This can be used for any topic, not just government schemes.
+    This tool allows the ability to find answers to diverse topics from different sources, not just government schemes.
+    
+    Query Enhancement Tips:
+        -> A and B: Results about topics A and B
+        -> "A and B": Results for the exact term "A and B"
+        -> A -B: Fewer topic B in results
+        -> A +B: More topic B in results
+        -> A site:example.com: Results about A from example.com
+        -> A -site:example.com: Results about A excluding example.com
+    
+    Args:
+        query: Search-engine optimised search query to find relevant information.
+    
+    Returns:
+        Dict with search results
+    """
+    try:
+        search = DuckDuckGoSearchRun()
+        results = search.run(query)
+        
+        if results:
+            return {
+                "success": True,
+                "results": results,
+                "query": query
+            }
+        else:
+            return {
+                "success": False,
+                "message": "No results found for your query.",
+                "query": query
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Search failed: {str(e)}",
+            "query": query
+        }
+
+@tool
+def get_current_datetime() -> Dict[str, Any]:
+    """
+    Fetch the latest date and time in UTC format.
     
     Returns:
         Dict containing current UTC datetime in various formats
@@ -217,6 +283,9 @@ def get_current_datetime() -> Dict[str, str]:
             "success": False,
             "error": f"Failed to get datetime: {str(e)}"
         }
+
+# Bind tools to LLM
+llm_with_tools = reasoning_qwen.bind_tools([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search])
 
 # Node Functions
 def validate_session(state: AgentState) -> AgentState:
@@ -247,16 +316,9 @@ def process_query(state: AgentState) -> AgentState:
     # Add system message if it's the first message
     messages = state.get("messages", [])
     if not any(isinstance(msg, SystemMessage) for msg in messages):
-        system_msg = SystemMessage(content="""You are Saarthi, an intelligent government scheme assistant for Indian citizens. 
-You help users discover and apply for government schemes. You have access to:
-1. fetch_user_pii - to retrieve user's stored documents like Aadhaar, PAN, etc.
-2. government_scheme_lookup - to search for relevant government schemes
-
-Call the tools when the user asks a query regarding their PII, government schemes, benefits or any related information.
-The tools can be called by returning a tool_calls object in your response.
-Be helpful, clear, and concise. When users ask about schemes, provide specific information about eligibility, required documents, and application process.
-Always communicate in simple, easy-to-understand language.""")
-        messages = [system_msg] + messages
+        system_msg_content = manager_system_template.render()
+        system_msg = SystemMessage(content=system_msg_content)
+        messages = messages + [system_msg]
     
     # Add user message
     messages.append(HumanMessage(content=user_query))
@@ -308,9 +370,6 @@ def llm_interaction(state: AgentState) -> AgentState:
     if conversation_summary:
         context_messages.append(SystemMessage(content=f"Previous conversation summary:\n{conversation_summary}"))
     context_messages.extend(messages)
-    
-    # Bind tools to LLM
-    llm_with_tools = reasoning_qwen.bind_tools([fetch_user_pii, government_scheme_lookup, get_current_datetime])
     
     try:
         # Get LLM response
@@ -379,7 +438,7 @@ def create_agent_graph():
     builder.add_node("should_summarize", lambda state: state)
     builder.add_node("summarize_conversation", summarize_conversation)
     builder.add_node("llm_interaction", llm_interaction)
-    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup, get_current_datetime]))
+    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search],))
     builder.add_node("handle_error", handle_error)
     
     # Add edges

@@ -1,5 +1,6 @@
 from collections import deque
-
+import warnings
+warnings.filterwarnings("ignore")
 import numpy as np
 from deepface import DeepFace
 from typing import List, Optional, Dict, Any, Iterable
