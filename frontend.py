@@ -637,18 +637,14 @@ else:
             if st.button(q, key=f"bubble_{i}", help="Click to ask this question and hear the answer aloud"):
                 # Add user message immediately (in Hindi)
                 st.session_state.messages.append({"type": "user", "content": questions_hindi[i]})
-                # Add processing message in Hindi
-                processing_msg = "मैं आपके प्रश्न की जांच कर रहा हूं। कृपया प्रतीक्षा करें।"
-                st.session_state.messages.append({"type": "bot", "content": processing_msg})
-                st.rerun()  # Show messages immediately
                 
                 # Send English question to agent graph
                 with st.spinner("🤖 Processing your query..."):
                     result = send_agent_message(q, st.session_state.agent_thread_id)
                 
                 if result["success"]:
-                    # Replace processing message with actual response
-                    st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
+                    # Add agent response
+                    st.session_state.messages.append({"type": "bot", "content": result["response"]})
                     st.session_state.pending_tts = result["response"]
                     
                     # Check if session is still valid
@@ -657,8 +653,8 @@ else:
                         st.session_state.user_authenticated = False
                         st.rerun()
                 else:
-                    # Replace processing message with error
-                    st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
+                    # Add error response
+                    st.session_state.messages.append({"type": "bot", "content": result["response"]})
                 st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -737,19 +733,15 @@ if mic_button:
                     
                     # Add user message immediately (in Hindi)
                     st.session_state.messages.append({"type": "user", "content": user_input_hindi})
-                    # Add processing message in Hindi
-                    processing_msg = "मैं आपके प्रश्न की जांच कर रहा हूं। कृपया प्रतीक्षा करें।"
-                    st.session_state.messages.append({"type": "bot", "content": processing_msg})
                     st.success(f"You said (English): {user_input_english} | आपने कहा (Hindi): {user_input_hindi}")
-                    st.rerun()  # Show messages immediately
                     
                     # Send English transcribed text to agent graph
                     with st.spinner("🤖 Processing your query..."):
                         result = send_agent_message(user_input_english, st.session_state.agent_thread_id)
                     
                     if result["success"]:
-                        # Replace processing message with actual response
-                        st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
+                        # Add agent response
+                        st.session_state.messages.append({"type": "bot", "content": result["response"]})
                         st.session_state.pending_tts = result["response"]
                         
                         # Check if session is still valid
@@ -758,8 +750,8 @@ if mic_button:
                             st.session_state.user_authenticated = False
                             st.rerun()
                     else:
-                        # Replace processing message with error
-                        st.session_state.messages[-1] = {"type": "bot", "content": result["response"]}
+                        # Add error response
+                        st.session_state.messages.append({"type": "bot", "content": result["response"]})
                         error_msg = result["response"]
                         st.session_state.pending_tts = error_msg
                     st.rerun()  # Force update to show new messages
