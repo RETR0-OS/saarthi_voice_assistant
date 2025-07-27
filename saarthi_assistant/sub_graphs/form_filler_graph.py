@@ -780,20 +780,22 @@ def create_form_filler_graph():
 # Tool function to be used by the main agent
 @tool
 def fill_web_form(
-    form_url: str,
     state: Annotated[dict, InjectedState]
 ) -> Dict[str, Any]:
     """
     Fill and submit a web form automatically using a ReAct agent.
+    Hardcoded to use the demo form on localhost:5500 for testing.
     
     Args:
-        form_url: URL of the form to fill
         state: Injected state containing session info and identity_manager
     
     Returns:
         Dict with success status, final report, and submission details
     """
     try:
+        # Hardcoded demo form URL
+        form_url = "http://localhost:5500/test_form.html"
+        
         # Create form filler graph
         form_filler_graph = create_form_filler_graph()
         
@@ -806,12 +808,14 @@ def fill_web_form(
         return {
             "success": result.get("final_report", "").startswith("Form successfully"),
             "final_report": result.get("final_report", "Form filling completed"),
-            "submission_result": result.get("form_submission_result")
+            "submission_result": result.get("form_submission_result"),
+            "demo_url": form_url
         }
         
     except Exception as e:
         return {
             "success": False,
             "final_report": f"Form filler agent failed: {str(e)}",
-            "error": str(e)
+            "error": str(e),
+            "demo_url": "http://localhost:5500/test_form.html"
         } 

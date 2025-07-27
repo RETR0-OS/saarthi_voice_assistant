@@ -457,7 +457,7 @@ def create_agent_graph():
     builder.add_node("should_summarize", lambda state: state)
     builder.add_node("summarize_conversation", summarize_conversation)
     builder.add_node("llm_interaction", llm_interaction)
-    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search, fill_web_form],))
+    builder.add_node("tools", ToolNode([fetch_user_pii, government_scheme_lookup, get_current_datetime, generic_web_search, fill_web_form]))
     builder.add_node("handle_error", handle_error)
     
     # Add edges
