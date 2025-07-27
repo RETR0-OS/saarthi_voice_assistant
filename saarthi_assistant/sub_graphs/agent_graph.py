@@ -12,11 +12,15 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_tavily import TavilySearch
 from datetime import datetime, timezone
 from langgraph.prebuilt import tools_condition
-
+from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
 from ..utilities.IdentityManger import get_identity_manager
 from .form_filler_graph import fill_web_form
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 # Initialize Jinja2 environment for system message template
 
@@ -65,6 +69,10 @@ qwen_fast = ChatOllama(
     num_predict=1024,
     repeat_penalty=1.5,
     base_url="http://localhost:11434/",
+)
+
+translator = ChatOpenAI(
+    model="gpt-4o-mini",
 )
 
 # Checkpointer for agent sessions
@@ -384,11 +392,18 @@ def llm_interaction(state: AgentState) -> AgentState:
         #Debug prints
         print(f"LLM Response: {response}")
 
+
         if response.content:
             print(f"Assistant: {response.content}")
+            translated_response = translator.invoke([
+                SystemMessage(content="Translate the given text to Hindi"),
+                HumanMessage(content=response.content)
+            ])
+
+        
             return {
                 "messages": [response],
-                "response": response.content
+                "response": translated_response.content
             }
         else:
             # Handle tool calls in the tool node
