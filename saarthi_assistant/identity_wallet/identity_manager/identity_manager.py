@@ -13,6 +13,8 @@ from ..identity_manager.face_recognition import FaceRecognitionUtility, CameraMa
 from ..utilities.crypto_manager import CryptoManager
 from ..utilities.key_manager import SecureKeyManager
 
+import traceback
+
 
 class IdentityManager:
     """Main identity management class implementing the face-gated identity vault"""
@@ -36,13 +38,13 @@ class IdentityManager:
         random_id = str(uuid.uuid4())[:8]
         return hashlib.sha256(f"{name}_{timestamp}_{random_id}".encode()).hexdigest()[:16]
 
-    def _compare_face_embeddings(self, embedding1: List[float], embedding2: List[float], threshold: float = 0.85) -> bool:
+    def _compare_face_embeddings(self, embedding1: np.ndarray, embedding2: np.ndarray) -> bool:
         """Compare two face embeddings using cosine similarity"""
-        emb1 = np.array(embedding1)
-        emb2 = np.array(embedding2)
-
-        cosine_similarity = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
-        return cosine_similarity >= threshold
+        try:
+            return FaceRecognitionUtility.match_embeddings(embedding1, embedding2)
+        except Exception as e:
+            print("Error comparing face embeddings:", e)
+            return False
 
     def capture_frames(self):
         """Capture frames from camera"""

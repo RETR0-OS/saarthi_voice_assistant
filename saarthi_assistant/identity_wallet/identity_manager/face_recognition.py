@@ -5,6 +5,7 @@ from deepface import DeepFace
 from typing import List, Optional, Dict, Any, Iterable
 from enum import Enum
 import cv2
+import numpy as np
 
 class FaceRecognitionModels(Enum):
     facenet = "Facenet"
@@ -18,23 +19,35 @@ class FaceRecognitionBackends(Enum):
     yolo_v11_s = "yolov11s"
     yolo_v11_n = "yolov11n"
     yolo_v11_m = "yolov11m"
+    retinaface = "retinaface"
 
 
 class FaceRecognitionUtility:
     model = FaceRecognitionModels.facenet.value # Facenet for accuracy and medium inference speed
-    backend = FaceRecognitionBackends.yolo_v11_n.value #nano model for fast face detection
+    backend = FaceRecognitionBackends.retinaface.value #nano model for fast face detection
     validation_distance = 0.4 # Low cosine similarity threshold for face validation
 
+    @classmethod
+    def match_embeddings(cls, embedding1: np.ndarray, embedding2: np.ndarray) -> bool:
+        """
+        Compare two face embeddings to check if they match.
+        
+        Args:
+            embedding1: First face embedding
+            embedding2: Second face embedding
+            threshold: Cosine similarity threshold for matching
+            
+        Returns:
+            True if embeddings match, False otherwise
+        """
+        result = DeepFace.verify(embedding1, embedding2, model_name=cls.model, detector_backend=cls.backend, distance_metric="cosine")
+        return result["verified"]
+    
     @classmethod
     def get_embedding(cls, image: np.ndarray) -> Dict[str, Any]:
 
         try:
             embedding = DeepFace.represent(image, model_name=cls.model, align=True)
-            if not embedding[0]["face_confidence"] >= 0.7:
-                return {
-                    "result": False,
-                    "error": "Fake face detected in the image."
-                }
             return {
                 "result": True,
                 "embedding": embedding,
@@ -67,8 +80,8 @@ class FaceRecognitionUtility:
         # Calculate cosine similarity between the first and subsequent embeddings
         first_embedding = embeddings[0]
         for i, embedding in enumerate(embeddings[1:], start=1):
-            cosine_similarity = np.dot(first_embedding, embedding) / (np.linalg.norm(first_embedding) * np.linalg.norm(embedding))
-            if cosine_similarity < cls.validation_distance:
+            result = cls.match_embeddings(first_embedding, embedding)
+            if not result:
                 return {
                     "result": False,
                     "error": f"Retry capture."
