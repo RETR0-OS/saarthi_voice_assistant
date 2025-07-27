@@ -50,14 +50,17 @@ class STTModel():
             # Generate transcription
             with torch.no_grad():
                 text_out = cls.model.generate(**audio_inputs, tgt_lang="eng")[0].cpu().numpy().squeeze()
+                hindi_text_out = cls.model.generate(**audio_inputs, tgt_lang="hin")[0].cpu().numpy().squeeze()
             
             # Decode text
             transcribed_text = cls.tokenizer.decode(text_out, clean_up_tokenization_spaces=True, skip_special_tokens=True)
+            transcribed_hindi_text = cls.tokenizer.decode(hindi_text_out, clean_up_tokenization_spaces=True, skip_special_tokens=True)
             
             processing_time = time.perf_counter() - start_time
             
             return {
                 "text": transcribed_text.strip(),
+                "hindi_text": transcribed_hindi_text.strip(),
                 "success": True,
                 "error": None,
                 "processing_time": processing_time
@@ -104,14 +107,16 @@ class STTModel():
             # Generate transcription
             with torch.no_grad():
                 text_out = cls.model.generate(**audio_inputs, tgt_lang="eng")[0].cpu().numpy().squeeze()
-            
+                hindi_text_out = cls.model.generate(**audio_inputs, tgt_lang="hin")[0].cpu().numpy().squeeze()
             # Decode text
             transcribed_text = cls.tokenizer.decode(text_out, clean_up_tokenization_spaces=True, skip_special_tokens=True)
+            transcribed_hindi_text = cls.tokenizer.decode(hindi_text_out, clean_up_tokenization_spaces=True, skip_special_tokens=True)
             
             processing_time = time.perf_counter() - start_time
             
             return {
                 "text": transcribed_text.strip(),
+                "hindi_text": transcribed_hindi_text.strip(),
                 "success": True,
                 "error": None,
                 "processing_time": processing_time
@@ -135,9 +140,10 @@ class STTModel():
         start = time.perf_counter()
         audio_inputs = cls.processor(audio, sampling_rate=16_000, return_tensors="pt").to("cuda")
         text_out = cls.model.generate(**audio_inputs, tgt_lang="eng")[0].cpu().numpy().squeeze()
+        hindi_text_out = cls.model.generate(**audio_inputs, tgt_lang="hin")[0].cpu().numpy().squeeze()
         end = time.perf_counter()
         print(end-start)
-        return cls.tokenizer.decode(text_out, clean_up_tokenization_spaces=True, skip_special_tokens=True)
+        return cls.tokenizer.decode(text_out, clean_up_tokenization_spaces=True, skip_special_tokens=True), cls.tokenizer.decode(hindi_text_out, clean_up_tokenization_spaces=True, skip_special_tokens=True)
 
 
 # Convenience function for easy import
