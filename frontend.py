@@ -313,6 +313,17 @@ header {visibility: hidden;}
     outline: 2px solid rgba(139, 115, 85, 0.5) !important;
     outline-offset: 2px !important;
 }
+
+/* Retry popup styling */
+.retry-popup {
+    background: rgba(255, 245, 220, 0.95) !important;
+    border: 2px solid rgba(200, 160, 80, 0.4) !important;
+    border-radius: 20px !important;
+    padding: 24px !important;
+    margin: 20px 0 !important;
+    box-shadow: 0 8px 32px rgba(139, 115, 98, 0.15) !important;
+    backdrop-filter: blur(12px) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -435,6 +446,33 @@ def show_registration_form():
             else:
                 st.error(result["notes"])
 
+def show_retry_popup():
+    """Display popup dialog asking user to retry login or register"""
+    st.markdown('<div class="retry-popup">', unsafe_allow_html=True)
+    st.markdown("### ⚠️ Registration Issue")
+    st.markdown("It seems like there was an issue with the registration process. Please choose how you'd like to proceed:")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🔄 Retry Authentication", key="retry_auth", help="Try face authentication again", use_container_width=True):
+            # Clear popup and reset auth state
+            st.session_state.show_retry_popup = False
+            st.session_state.auth_notes = ""
+            st.success("Please try authentication again.")
+            st.rerun()
+    
+    with col2:
+        if st.button("📝 Register as New User", key="retry_register", help="Fill out the registration form", use_container_width=True):
+            # Clear popup and show registration form
+            st.session_state.show_retry_popup = False
+            st.session_state.show_registration_form = True
+            st.session_state.auth_notes = ""
+            st.info("Please fill out the registration form below.")
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
 def show_pii_form():
     """Display PII collection form"""
     st.markdown("### 🏛️ Government Documents & Information")
@@ -528,6 +566,8 @@ if "show_pii_form" not in st.session_state:
     st.session_state.show_pii_form = False
 if "auth_notes" not in st.session_state:
     st.session_state.auth_notes = ""
+if "show_retry_popup" not in st.session_state:
+    st.session_state.show_retry_popup = False
 
 # --- Agent conversation state ---
 if "agent_thread_id" not in st.session_state:
@@ -587,6 +627,12 @@ if not st.session_state.user_authenticated:
                     st.session_state.auth_notes = result["notes"]
                     st.info("Face not recognized. Please register as a new user.")
                     st.rerun()
+                elif result.get("registration_data_missing"):
+                    # Registration data missing - show popup
+                    st.session_state.show_retry_popup = True
+                    st.session_state.auth_notes = result["notes"]
+                    st.warning("Registration data was missing. Please choose how to proceed.")
+                    st.rerun()
                 else:
                     # Authentication failed
                     st.error(result["notes"])
@@ -598,13 +644,15 @@ if not st.session_state.user_authenticated:
     st.markdown('</div>', unsafe_allow_html=True)
     
     # Show forms if needed
-    if st.session_state.show_registration_form:
+    if st.session_state.show_retry_popup:
+        show_retry_popup()
+    elif st.session_state.show_registration_form:
         show_registration_form()
     elif st.session_state.show_pii_form:
         show_pii_form()
     
     # Show informational message
-    if not st.session_state.show_registration_form and not st.session_state.show_pii_form:
+    if not st.session_state.show_retry_popup and not st.session_state.show_registration_form and not st.session_state.show_pii_form:
         st.markdown('<div style="text-align: center; margin: 20px 0; color: #6d5d47;">', unsafe_allow_html=True)
         st.markdown("👋 **Welcome to Saarthi!**")
         st.markdown("Please authenticate with your face to access government scheme assistance.")
@@ -698,6 +746,7 @@ if st.session_state.user_authenticated:
             st.session_state.auth_notes = ""
             st.session_state.show_registration_form = False
             st.session_state.show_pii_form = False
+            st.session_state.show_retry_popup = False
             st.session_state.messages = []
             st.session_state.agent_thread_id = None
             st.session_state.user_id = None

@@ -31,6 +31,7 @@ class AuthGraphRunner:
                 "notes": result.get("notes", ""),
                 "pii_collection_complete": result.get("pii_collection_complete", False),
                 "requires_registration": "registration required" in result.get("notes", "").lower(),
+                "registration_data_missing": "registration data missing" in result.get("notes", "").lower(),
                 "requires_pii": False  # Will be set by continue_with_registration
             }
         except Exception as e:

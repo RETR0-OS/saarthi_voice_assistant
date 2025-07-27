@@ -10,7 +10,7 @@ from ..utilities.IdentityManger import get_identity_manager
 
 # State Schema
 class AuthState(TypedDict):
-    auth_status: Literal["not_authenticated", "authenticated", "registration_needed", "pii_collection", "authentication_failed"]
+    auth_status: Literal["not_authenticated", "authenticated", "registration_needed", "registration_data_missing", "pii_collection", "authentication_failed"]
     user_info: Optional[Dict[str, Any]]
     error_message: Optional[str]
     registration_data: Optional[Dict[str, str]]
@@ -119,9 +119,9 @@ def register_user(state: AuthState) -> AuthState:
         registration_data = state.get("registration_data")
         if not registration_data:
             return {
-                "auth_status": "authentication_failed",
+                "auth_status": "registration_data_missing",
                 "auth_result": False,
-                "notes": "No registration data available",
+                "notes": "Registration data missing - user needs to choose retry or register",
                 "error_message": "Missing registration data"
             }
         
@@ -218,6 +218,8 @@ def route_auth_result(state: AuthState) -> str:
         if state.get("registration_data"):
             return "register_user"
         return "collect_registration_data"
+    elif auth_status == "registration_data_missing":
+        return "__end__"  # Return to frontend to show popup
     elif auth_status == "pii_collection":
         return "collect_pii"
     elif auth_status == "authentication_failed":
@@ -253,7 +255,6 @@ def create_auth_graph():
             "authentication_failed": "handle_auth_error",
             "collect_pii": "collect_pii",
             "handle_auth_error": "handle_auth_error"
-
         }
     )
     
