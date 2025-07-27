@@ -300,6 +300,26 @@ class IdentityManager:
         return self._compare_face_embeddings(live_embedding, stored_embedding)
 
 
+    def get_all_pii_keys(self) -> Optional[bytes]:
+        """
+        Get the available PII data types for the current logged in user
+        """
+        if not self.verify_user():
+            return None
+        
+        #get all available data types keys for the current user
+        user_id = self.current_user._id
+        data_types = self.db_manager.get_all_data_types(user_id)
+        return data_types
+    
+    def fetch_user_profile_info(self) -> Optional[Dict[str, Any]]:
+        """
+        Fetch the user profile information
+        """
+        if not self.verify_user():
+            return None
+        return self.current_user.to_dict()
+
     def __del__(self):
         """Cleanup on destruction"""
         self.logout()
