@@ -10,7 +10,7 @@ from ..utilities.IdentityManger import get_identity_manager
 
 # State Schema
 class AuthState(TypedDict):
-    auth_status: Literal["not_authenticated", "authenticated", "registration_needed", "registration_data_missing", "pii_collection", "authentication_failed"]
+    auth_status: Literal["not_authenticated", "authenticated", "registration_needed", "waiting_for_registration", "registration_data_collected", "registration_data_missing", "pii_collection", "waiting_for_pii", "authentication_failed"]
     user_info: Optional[Dict[str, Any]]
     error_message: Optional[str]
     registration_data: Optional[Dict[str, str]]
@@ -104,14 +104,16 @@ def collect_registration_data(state: AuthState) -> AuthState:
     
     if registration_data:
         return {
+            "auth_status": "registration_data_collected",
             "registration_data": registration_data,
             "notes": "Registration data collected successfully"
         } # type: ignore
     else:
         # Wait for user input - frontend will call this again after form submission
         return {
+            "auth_status": "waiting_for_registration",
             "notes": "Waiting for registration data from user"
-        }
+        } # type: ignore
 
 def register_user(state: AuthState) -> AuthState:
     """Register new user using IdentityManager"""
@@ -136,11 +138,12 @@ def register_user(state: AuthState) -> AuthState:
         if result["result"]:
             return {
                 "auth_status": "pii_collection",
+                "auth_result": False,  # Not fully authenticated yet - need PII
                 "user_info": {
                     "user_id": result["user_id"],
                     "message": result["message"]
                 },
-                "notes": "Registration successful - proceeding to PII collection"
+                "notes": "Registration successful - PII collection required"
             }
         else:
             return {
@@ -166,6 +169,8 @@ def collect_pii(state: AuthState) -> AuthState:
         if not pii_data:
             # Wait for user input - frontend will call this again after form submission
             return {
+                "auth_status": "waiting_for_pii",
+                "auth_result": False,
                 "notes": "Waiting for PII data from user"
             }
         
@@ -206,6 +211,16 @@ def handle_auth_error(state: AuthState) -> AuthState:
         "notes": error_message
     }
 
+# Entry point routing function
+def route_entry_point(state: AuthState) -> str:
+    """Route to appropriate starting node based on initial auth_status"""
+    auth_status = state.get("auth_status", "not_authenticated")
+    
+    if auth_status == "pii_collection":
+        return "collect_pii"
+    else:
+        return "attempt_login"
+
 # Routing Function
 def route_auth_result(state: AuthState) -> str:
     """Route based on authentication status"""
@@ -218,10 +233,16 @@ def route_auth_result(state: AuthState) -> str:
         if state.get("registration_data"):
             return "register_user"
         return "collect_registration_data"
+    elif auth_status == "waiting_for_registration":
+        return "__end__"  # Return to frontend to show registration form
+    elif auth_status == "registration_data_collected":
+        return "register_user"
     elif auth_status == "registration_data_missing":
         return "__end__"  # Return to frontend to show popup
     elif auth_status == "pii_collection":
-        return "collect_pii"
+        return "__end__"  # Return to frontend to show PII form
+    elif auth_status == "waiting_for_pii":
+        return "__end__"  # Return to frontend to show PII form (retry)
     elif auth_status == "authentication_failed":
         return "handle_auth_error"
     else:
@@ -243,8 +264,15 @@ def create_auth_graph():
     builder.add_node("collect_pii", collect_pii)
     builder.add_node("handle_auth_error", handle_auth_error)
     
-    # Add edges
-    builder.add_edge(START, "attempt_login")
+    # Add edges - conditional entry point based on initial state
+    builder.add_conditional_edges(
+        START,
+        route_entry_point,
+        {
+            "attempt_login": "attempt_login",
+            "collect_pii": "collect_pii"
+        }
+    )
     builder.add_conditional_edges(
         "attempt_login",
         route_auth_result,
@@ -252,23 +280,26 @@ def create_auth_graph():
             "__end__": END,
             "collect_registration_data": "collect_registration_data",
             "register_user": "register_user",
-            "authentication_failed": "handle_auth_error",
-            "collect_pii": "collect_pii",
-            "handle_auth_error": "handle_auth_error"
+            "authentication_failed": "handle_auth_error"
         }
     )
     
-    builder.add_edge("collect_registration_data", "register_user")
+    builder.add_conditional_edges(
+        "collect_registration_data",
+        route_auth_result,
+        {
+            "__end__": END,
+            "register_user": "register_user"
+        }
+    )
+    
     builder.add_conditional_edges(
         "register_user",
         route_auth_result,
         {
             "__end__": END,
             "collect_registration_data": "collect_registration_data",
-            "register_user": "register_user",
-            "authentication_failed": "handle_auth_error",
-            "collect_pii": "collect_pii",
-            "handle_auth_error": "handle_auth_error"
+            "authentication_failed": "handle_auth_error"
         }
     )
     
@@ -277,11 +308,7 @@ def create_auth_graph():
         route_auth_result,
         {
             "__end__": END,
-            "collect_registration_data": "collect_registration_data",
-            "register_user": "register_user",
-            "authentication_failed": "handle_auth_error",
-            "collect_pii": "collect_pii",
-            "handle_auth_error": "handle_auth_error"
+            "authentication_failed": "handle_auth_error"
         }
     )
     

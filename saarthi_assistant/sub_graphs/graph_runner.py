@@ -32,6 +32,7 @@ class AuthGraphRunner:
                 "pii_collection_complete": result.get("pii_collection_complete", False),
                 "requires_registration": "registration required" in result.get("notes", "").lower(),
                 "registration_data_missing": "registration data missing" in result.get("notes", "").lower(),
+                "user_id": result.get("user_info", {}).get("user_id") if result.get("user_info") else None,
                 "requires_pii": False  # Will be set by continue_with_registration
             }
         except Exception as e:
@@ -61,15 +62,17 @@ class AuthGraphRunner:
                 config={"configurable": {"thread_id": self.current_thread_id}}
             )
             
-            # Check if we need PII collection
-            requires_pii = result.get("notes", "").lower().find("pii collection") != -1
+            # Check if we need PII collection - look for specific status or notes
+            requires_pii = (result.get("notes", "").lower().find("pii collection") != -1 or 
+                          result.get("notes", "").lower().find("pii collection required") != -1)
             
             return {
                 "success": True,
                 "auth_result": result.get("auth_result", False),
                 "notes": result.get("notes", ""),
                 "pii_collection_complete": result.get("pii_collection_complete", False),
-                "requires_pii": requires_pii
+                "requires_pii": requires_pii,
+                "user_id": result.get("user_info", {}).get("user_id") if result.get("user_info") else None
             }
         except Exception as e:
             return {
@@ -112,6 +115,40 @@ class AuthGraphRunner:
                 "error": str(e)
             }
     
+    def continue_with_pii_direct(self, pii_data: Dict[str, str]) -> Dict[str, Any]:
+        """Continue authentication with PII data by directly invoking collect_pii node"""
+        if not self.current_thread_id:
+            return {
+                "success": False,
+                "auth_result": False,
+                "notes": "No active authentication session"
+            }
+        
+        try:
+            # Set the PII data for HITL
+            set_user_input("pii", pii_data)
+            
+            # Directly invoke collect_pii node instead of starting from beginning
+            result = self.auth_graph.invoke(
+                {"auth_status": "pii_collection"},  # Start with PII collection status
+                config={"configurable": {"thread_id": self.current_thread_id}}
+            )
+            
+            return {
+                "success": True,
+                "auth_result": result.get("auth_result", False),
+                "notes": result.get("notes", ""),
+                "pii_collection_complete": result.get("pii_collection_complete", False),
+                "user_id": result.get("user_info", {}).get("user_id") if result.get("user_info") else None
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "auth_result": False,
+                "notes": f"PII collection failed: {str(e)}",
+                "error": str(e)
+            }
+
     def reset_session(self):
         """Reset the current authentication session"""
         self.current_thread_id = None
@@ -181,7 +218,7 @@ def submit_registration_data(registration_data: Dict[str, str]) -> Dict[str, Any
 
 def submit_pii_data(pii_data: Dict[str, str]) -> Dict[str, Any]:
     """Submit PII data and complete authentication"""
-    return auth_runner.continue_with_pii(pii_data)
+    return auth_runner.continue_with_pii_direct(pii_data)
 
 def reset_authentication():
     """Reset authentication session"""

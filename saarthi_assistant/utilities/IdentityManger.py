@@ -67,7 +67,7 @@ def get_identity_manager():
     This ensures the instance and its keys persist across Streamlit interactions.
     """
     if 'identity_manager_instance' not in st.session_state:
-        st.session_state.identity_manager_instance = IdentityManager(camera_id=1)
+        st.session_state.identity_manager_instance = IdentityManager(camera_id=0)
     return st.session_state.identity_manager_instance
 
 def reset_identity_manager():

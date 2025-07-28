@@ -23,6 +23,7 @@ class FaceRecognitionBackends(Enum):
     retinaface = "retinaface"
 
 
+
 class FaceRecognitionUtility:
     model = FaceRecognitionModels.facenet.value # Facenet for accuracy and medium inference speed
     backend = FaceRecognitionBackends.retinaface.value #nano model for fast face detection
@@ -41,20 +42,22 @@ class FaceRecognitionUtility:
         Returns:
             True if embeddings match, False otherwise
         """
-        result = DeepFace.verify(embedding1, embedding2, model_name=cls.model, detector_backend=cls.backend, distance_metric="cosine")
+        result = DeepFace.verify(embedding1, embedding2, model_name=cls.model, detector_backend='mtcnn', distance_metric="cosine")
         return result["verified"]
     
     @classmethod
     def get_embedding(cls, image: np.ndarray) -> Dict[str, Any]:
 
         try:
-            embedding = DeepFace.represent(image, model_name=cls.model, align=True)
+            embedding = DeepFace.represent(image, model_name=cls.model, align=True, detector_backend='mtcnn')
             return {
                 "result": True,
                 "embedding": embedding,
             }
         except ValueError as e:
-            print(f"Error in getting embedding: {e}")            
+            print(f"Error in getting embedding: {e}")    
+            cv2.imshow("Error", image)
+            cv2.waitKey(0)
             return {
                 "result": False,
                 "error": "Face not detected in the image."
